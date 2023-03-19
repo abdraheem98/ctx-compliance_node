@@ -1,0 +1,21 @@
+{
+	"author": "Level Access",
+	"name": "access-continuum-cucumber-selenium-chrome",
+	"version": "5.0.1",
+	"description": "Cucumberjs / Selenium / Chrome + ACCESS Engine",
+	"scripts": {
+		"test": "./node_modules/.bin/cucumber-js --require features/steps/"
+	},
+	"devDependencies": {
+		"@continuum/continuum-javascript-professional": "file:./lib/continuum-continuum-javascript-professional-5.0.1.tgz",
+		"chai": "4.2.0",
+		"chromedriver": "^110.0",
+		"cucumber": "6.0.5",
+		"global-agent": "2.1.8",
+		"selenium-webdriver": "3.6.0"
+	},
+	"dependencies": {
+		"node-fetch": "^3.3.1",
+		"q": "1.5.1"
+	}
+}
