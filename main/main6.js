@@ -30,6 +30,11 @@ let ctxScanApp = {};
 //objects to scan.
 ctxScanApp.urlsToScan = [];
 
+//The scan log id identifies the active scan record where log entries
+//are posted. Initially, the value is -1, and it is updated by the first
+//log post to a valid scan id.
+ctxScanApp.scanLogId = -1;
+
 //The current source data object to scan
 ctxScanApp.currentScanSrc = {};
 
@@ -44,6 +49,7 @@ const MSG_TYPE_UPDATE = "msg_type_update";
 
 try {
     
+    //postScanRecord("Test message!", MSG_TYPE_START, ctxScanApp.scanLogId, -1);
     getUrls_start();
 
 } catch( error ) {
@@ -54,12 +60,18 @@ try {
 
 async function getUrls_start() {
 
+    postScanRecord(`Starting scan. Retrieving URLs from scan list.`, MSG_TYPE_START, ctxScanApp.scanLogId, -1);
     await( getUrlsToScan() ).then( runScan_start, getUrls_failed );
-
+    
 };
 
 async function getUrls_failed() {
+    
     console.log("URL Retrieval failed");
+    postScanRecord(`Aborted scan with no pages completed. Unable to retrieve URLs from scan list.`, MSG_TYPE_UPDATE, ctxScanApp.scanLogId, -1);
+
+    let forceCleanup = true;
+    postScanCleanup( forceCleanup );
 };
 
 //STEP 2 - Start scan run
@@ -68,18 +80,39 @@ async function getUrls_failed() {
 async function runScan_start() {
 
     const scanListLen = ctxScanApp.urlsToScan.length;
-    console.log( `runScan_start(): Scanning ${scanListLen} pages` );
-    
 
-    for (let i=0; i<scanListLen; i++) {
-        ctxScanApp.currentScanSrc = ctxScanApp.urlsToScan[i];
-        console.log( "now scanning: ", ctxScanApp.currentScanSrc.url );
-        ctxScanApp.currentScanSrc.scanned = true;
-        await driver.get( ctxScanApp.currentScanSrc.url ).then(runScan_postInitialize, runScan_start_failed);
-    };
+    if ( scanListLen > 0 ) {
+
+        //Start a scan record
+        postScanRecord(`Beginning scan with ${scanListLen} sources.`, MSG_TYPE_UPDATE, ctxScanApp.scanLogId);
+        console.log( `runScan_start(): Scanning ${scanListLen} pages` );
+    
+        //Execute on scans
+        for (let i=0; i<scanListLen; i++) {
+            ctxScanApp.currentScanSrc = ctxScanApp.urlsToScan[i];
+            console.log( "now scanning: ", ctxScanApp.currentScanSrc.url );
+            ctxScanApp.currentScanSrc.scanned = true;
+            await driver.get( ctxScanApp.currentScanSrc.url ).then(runScan_postInitialize, runScan_start_failed);
+        };
+
+    } else {
+        
+        //Nothing to scan
+        postScanRecord(`Aborted scan - no pages to scan.`, MSG_TYPE_ERROR, ctxScanApp.scanLogId);
+
+        let forceCleanup = true;
+        postScanCleanup( forceCleanup );
+    }    
 
 }
 
+
+async function runScan_start_failed() {
+
+    console.log( "runScan_start_failed" );
+    postScanRecord(`Scan aborted - an error occurred starting up the scan for this source.`, MSG_TYPE_ERROR, ctxScanApp.scanLogId, ctxScanApp.currentScanSrc.scan_list_id);
+
+}
 
 //STEP 3 - Set Up Continuum
 //=====================================
@@ -91,10 +124,10 @@ async function runScan_postInitialize() {
     
 }
 
-async function runScan_start_failed() {
-
-    console.log( "runScan_start_failed" );
-
+async function runScan_postInit_failed( error ) {
+    
+    console.log( "runScan_postInit_failed. error: ", error );
+    postScanRecord(`Scan aborted - could not set Chrome driver to this source.`, MSG_TYPE_ERROR, ctxScanApp.scanLogId, ctxScanApp.currentScanSrc.scan_list_id);
 }
 
 
@@ -109,17 +142,21 @@ async function runScan_getResults() {
     if ( ctxScanApp.currentScanSrc.is_global == "f" ) {
         
         //do a simple scan
+        
         await getFullPageScanResults().then(scanResultsFound, scanResultsNotFound);
 
     } else if ( ctxScanApp.currentScanSrc.is_global == "t" && ctxScanApp.currentScanSrc.node_path == null ) {
         //error - this is a global component, but the node_path is missing
         //This should be noted, but it should not break the chain of scanning
-        throw( `getScanResults(): Source id ${ ctxScanApp.currentScanSrc.id } is set to global, but does not have a node_path value.` )
+        
+        postScanRecord(`Found a global component with no node_path, can't complete scan of this source.`, MSG_TYPE_ERROR, ctxScanApp.scanLogId, ctxScanApp.currentScanSrc.scan_list_id);
+        //throw( `getScanResults(): Source id ${ ctxScanApp.currentScanSrc.scan_list_id} is set to global, but does not have a node_path value.` )
         
     } else if ( ctxScanApp.currentScanSrc.is_global == "t" && ctxScanApp.currentScanSrc.node_path !== null ) {
         
         //node scan
-        console.log("runScan_getResults(): Running a node scan" );
+        //console.log("runScan_getResults(): Running a node scan" );
+        
         await getNodeScanResults().then(scanResultsFound, scanResultsNotFound);
     }
     
@@ -139,21 +176,26 @@ async function getNodeScanResults() {
 }
 
 
-async function runScan_postInit_failed( error ) {
-    console.log( "runScan_postInit_failed. error: ", error );
-}
-
 //STEP 5 - Run scans
 //=====================================
 
 async function scanResultsFound() {
     let accessibilityConcerns = await Continuum.getAccessibilityConcerns();
-    console
+    let issLen = accessibilityConcerns.length;
 
-    //move the fingerprint object into the main object so it can be converted to JSON
-    issLen = accessibilityConcerns.length;
-    for ( let i=0; i<issLen; i++ ) {
-        accessibilityConcerns[i]._fingerprint = accessibilityConcerns[i]._rawEngineJsonObject.fingerprint
+    if ( issLen > 0 ) {
+
+        postScanRecord(`Scan found ${issLen} issues.`, MSG_TYPE_UPDATE, ctxScanApp.scanLogId, ctxScanApp.currentScanSrc.scan_list_id);
+        
+        //move the fingerprint object into the main object so it can be converted to JSON
+        for ( let i=0; i<issLen; i++ ) {
+            accessibilityConcerns[i]._fingerprint = accessibilityConcerns[i]._rawEngineJsonObject.fingerprint
+        }
+
+    } else {
+        
+        postScanRecord(`Scan found 0 issues.`, MSG_TYPE_UPDATE, ctxScanApp.scanLogId, ctxScanApp.currentScanSrc.scan_list_id);
+        
     }
 
     //console.log("scanResultsFound(): Scan results: ", accessibilityConcerns);
@@ -165,23 +207,44 @@ async function scanResultsFound() {
 
 function scanResultsNotFound( error )  {
     console.log( "scanResultsNotFound(): ", error );
+    postScanRecord(`Could not retrieve accessibility concerns for this source.`, MSG_TYPE_ERROR, ctxScanApp.scanLogId, ctxScanApp.currentScanSrc.scan_list_id);
 }
 
 
 //STEP 6 - Post Request Cleanup
 //=====================================
-let postScanCleanup = () => {
-    const scanListLen = ctxScanApp.urlsToScan.length;
-    let allUrlsScanned = true;
 
-    for (let i=0; i<scanListLen; i++) {
-        if ( !ctxScanApp.urlsToScan[i].scanned ) {
-            allUrlsScanned = false;
-            break;
+/**
+ * Performs cleanup after checking that all scanning is complete. There is a way to 
+ * force closure regardless of status by setting force_close to true.
+ * 
+ * @param {*} force_close 
+ */
+let postScanCleanup = ( force_close = false ) => {
+
+    if ( !force_close ) {
+
+        const scanListLen = ctxScanApp.urlsToScan.length;
+        let allUrlsScanned = true;
+
+        for (let i=0; i<scanListLen; i++) {
+            if ( !ctxScanApp.urlsToScan[i].scanned ) {
+                allUrlsScanned = false;
+                break;
+            }
+        };
+
+        if ( allUrlsScanned ) {
+            postScanRecord(`Full scan completed.`, MSG_TYPE_FINISH, ctxScanApp.scanLogId);
+            driver.quit();
         }
-    };
 
-    if ( allUrlsScanned ) driver.quit();
+    } else {
+
+        postScanRecord(`Closing aborted scan`, MSG_TYPE_FINISH, ctxScanApp.scanLogId);
+        if (driver) driver.quit();
+
+    }
 }
 
 /**
@@ -202,31 +265,42 @@ async function getUrlsToScan() {
             return response.json();
         })
         .then((jsonResponse) => {
-            urlsRetrieved = jsonResponse;
+            
+            //console.log( "getUrlsToScan(): Url data:", JSON.stringify( jsonResponse ) );
 
             /*
+            //Get info
             console.log( "getUrlsToScan(): Status:", status);
-            console.log( "getUrlsToScan(): Length:", urlsRetrieved.length);
-            console.log( "getUrlsToScan(): Type:", typeof urlsRetrieved );
+            console.log( "getUrlsToScan(): Length:", jsonResponse.length);
+            console.log( "getUrlsToScan(): Type:", typeof 8jsonResponse );
             //console.log( "getUrlsToScan(): Url data:", JSON.stringify( jsonResponse ) );
             
             //Summarize globals
             let globalItems = [];
-            for (let y=0; y < urlsRetrieved.length; y++) {
-                if (urlsRetrieved[y].is_global == "t") globalItems.push( urlsRetrieved[y] );
+            for (let y=0; y < jsonResponse.length; y++) {
+                if (jsonResponse[y].is_global == "t") globalItems.push( jsonResponse[y] );
             }
             console.log( "getUrlsToScan(): globals:", globalItems );
             */
 
-            //strip out a single global component for scanning
-            for (let y=0; y < urlsRetrieved.length; y++) {
-                 urlsRetrieved[y].scanned = false;
+            //strip out global components for scanning
+            /*
+            for (let y=0; y < jsonResponse.length; y++) {
+                jsonResponse[y].scanned = false;
                  
-                 if (urlsRetrieved[y].is_global == "t") {
-                    ctxScanApp.urlsToScan.push( urlsRetrieved[y] );
+                 if (jsonResponse[y].is_global == "t") {
+                    ctxScanApp.urlsToScan.push( jsonResponse[y] );
                 }
             }
-            //console.log( "getUrlsToScan(): Url data:", urlsRetrieved );
+            */
+
+            for (let y=0; y < jsonResponse.length; y++) {
+
+                jsonResponse[y].scanned = false;                 
+                ctxScanApp.urlsToScan.push( jsonResponse[y] );
+
+            }
+
         })
         .catch((err) => {
             // handle error
@@ -235,41 +309,47 @@ async function getUrlsToScan() {
 
 };
 
-
 /**
- * Retrieves URLs to scan from the ad__crossint_1 table
- * @returns String JSON list
+ * Post a scan record
+ * @param {*} msg The message to be sent
+ * @param {*} type The type of record to be sent - uses constants starting with "MSG_TYPE"
+ * @param {*} scanid The id from the 'jtm_scans' entry, or -1 if it has not yet been established
+ * @param {*} scan_list_id The id from the 'jtm_scan-list' table. This is optional since the record might not pertain to a specific jtm-scan-list id element.
+ * @param {*} timestamp The timestamp for the record. It is rare to provide anything here - the function will provide the current time down to the seconds.
  */
-async function postScanLogEntry( msg, type, scanid = -1, timestamp = Date.now() ) {
+async function postScanRecord( msg, type, scanid = ctxScanApp.scanLogId, scan_list_id = -1, timestamp = new Date() ) {
     
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-	const targetPg = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/postScanLogEntry.php';
+	const targetPg = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/postScanRecord.php';
 
-    let status;
-    let scanId;
-
-    letScanLogMsg = {
+    let scanLogMsg = {
         "msg": msg,
         "type": type,
         "scanid" : scanid,
-        "timestamp": timestamp
+        "scanlistid" : scan_list_id,
+        "timestamp": getFullDateAndTime()
     }
 
-    await fetch( urlListLoc, {
+    let status;
+
+    await fetch( targetPg, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: scanLogMsg
+        body: JSON.stringify(scanLogMsg)
     })
         .then( (response) => {
             status = response.status;
             return response.json();
         })
         .then((jsonResponse) => {
-            scanId = jsonResponse;
-            // console.log( JSON.stringify( jsonResponse ) );
-            // console.log(status);
+            //console.log( "postScanRecord(): status: ", status);
+            //console.log( "postScanRecord(): jsonResponse: ", jsonResponse );
+
+            if ( 'new_scan_id' in jsonResponse ) {
+                ctxScanApp.scanLogId = jsonResponse.new_scan_id;                
+            }
         })
         .catch((err) => {
             // handle error
@@ -319,3 +399,46 @@ async function sendAccessibilityConcernsToCTXAx( ampReportData ) {
         });
 
 }
+
+function getFullDateAndTime( timestamp = new Date(), forceTwoDigits = true ) {
+    
+    //month
+    let timeMonth = timestamp.getMonth();
+    timeMonth++;
+    timeMonth = timeMonth.toString();
+    if ( forceTwoDigits && timeMonth.length == 1 )  timeMonth = "0" + timeMonth;
+
+    //day
+    let timeDay = timestamp.getDate();
+    timeDay = timeDay.toString();
+    if ( forceTwoDigits && timeDay.length == 1 ) timeDay = "0" + timeDay;
+
+    //year
+    let timeYear = timestamp.getFullYear();
+    timeYear = timeYear.toString();
+    if ( forceTwoDigits ) timeYear = timeYear.substring(2);
+    
+    //hours
+    let timeHour = timestamp.getHours();
+    timeHour = timeHour.toString();
+    
+    //minutes
+    let timeMinutes = timestamp.getMinutes();
+    timeMinutes = timeMinutes.toString();
+    
+    //seconds
+    let timeSeconds = timestamp.getSeconds();
+    timeSeconds = timeSeconds.toString();
+    
+    //console.log( "dcaapJsUtils.getFullDateAndTime(): Month:", timeMonth, ", Day:",timeDay, ", Year:", timeYear, ", Hours:", timeHour, "Minutes:", timeMinutes, "Seconds:", timeSeconds );
+
+    return {
+        month: timeMonth,
+        day: timeDay,
+        year: timeYear,
+        hour: timeHour,
+        minute: timeMinutes,
+        second: timeSeconds
+    };
+
+};
