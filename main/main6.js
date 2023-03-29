@@ -38,18 +38,29 @@ ctxScanApp.scanLogId = -1;
 //The current source data object to scan
 ctxScanApp.currentScanSrc = {};
 
+/*
+When true, the scan metadata - as opposed to the individual
+page metadata - has been updated.
+*/
+ctxScanApp.currentScanSrc.scanMetadataPosted = false;
+
+ctxScanApp.currentScanSrc.metadata = [];
+
+
 const MSG_TYPE_ERROR = "msg_type_error";
 const MSG_TYPE_FINISH = "msg_type_finish";
 const MSG_TYPE_START = "msg_type_start";
 const MSG_TYPE_UPDATE = "msg_type_update";
 
-
-//STEP 1 - Get Urls
-//=====================================
+/*
+* STEP 1 - Get Urls
+* As a first step, retrieve URLs, or determine that none are available. Create an initial scan record
+* initially, even if the URL list is not available, so record can be made of it.
+* ===============================================================================
+*/
 
 try {
     
-    //postScanRecord("Test message!", MSG_TYPE_START, ctxScanApp.scanLogId, -1);
     getUrls_start();
 
 } catch( error ) {
@@ -60,7 +71,11 @@ try {
 
 async function getUrls_start() {
 
-    postScanRecord(`Starting scan. Retrieving URLs from scan list.`, MSG_TYPE_START, ctxScanApp.scanLogId, -1);
+    //Post the initial scan record
+    //The scan log id is expected to be -1 at this point.
+    await postScanRecord(`Starting scan. Retrieving URLs from scan list.`, MSG_TYPE_START, ctxScanApp.scanLogId, -1);
+    
+    //Now that the initial scan record is created, retrieve URLs for scanning
     await( getUrlsToScan() ).then( runScan_start, getUrls_failed );
     
 };
@@ -84,7 +99,7 @@ async function runScan_start() {
     if ( scanListLen > 0 ) {
 
         //Start a scan record
-        postScanRecord(`Beginning scan with ${scanListLen} sources.`, MSG_TYPE_UPDATE, ctxScanApp.scanLogId);
+        postScanRecord( `Beginning scan with ${scanListLen} sources.`, MSG_TYPE_UPDATE, ctxScanApp.scanLogId );
         console.log( `runScan_start(): Scanning ${scanListLen} pages` );
     
         //Execute on scans
@@ -92,7 +107,7 @@ async function runScan_start() {
             ctxScanApp.currentScanSrc = ctxScanApp.urlsToScan[i];
             console.log( "now scanning: ", ctxScanApp.currentScanSrc.url );
             ctxScanApp.currentScanSrc.scanned = true;
-            await driver.get( ctxScanApp.currentScanSrc.url ).then(runScan_postInitialize, runScan_start_failed);
+            await driver.get( ctxScanApp.currentScanSrc.url ).then( runScan_postInitialize, runScan_start_failed );
         };
 
     } else {
@@ -143,7 +158,8 @@ async function runScan_getResults() {
         
         //do a simple scan
         
-        await getFullPageScanResults().then(scanResultsFound, scanResultsNotFound);
+        //await getFullPageScanResults().then(scanResultsFound, scanResultsNotFound);
+        await getFullPageScanResults().then(getPageMetadata_fullPage, scanResultsNotFound);
 
     } else if ( ctxScanApp.currentScanSrc.is_global == "t" && ctxScanApp.currentScanSrc.node_path == null ) {
         //error - this is a global component, but the node_path is missing
@@ -157,7 +173,8 @@ async function runScan_getResults() {
         //node scan
         //console.log("runScan_getResults(): Running a node scan" );
         
-        await getNodeScanResults().then(scanResultsFound, scanResultsNotFound);
+        //await getNodeScanResults().then(scanResultsFound, scanResultsNotFound);
+        await getNodeScanResults().then(getPageMetadata_pageNode, scanResultsNotFound);
     }
     
 }
@@ -175,11 +192,29 @@ async function getNodeScanResults() {
 
 }
 
+//Step 5a - Get Page Metadata
+//====================================
+
+async function getPageMetadata_fullPage() {
+    
+    let pageMetadata = await Continuum.getPageMetadata();
+    await postScanMetadata( ctxScanApp.scanLogId, pageMetadata, ctxScanApp.currentScanSrc.scan_list_id ).then( scanResultsFound, scanResultsNotFound );
+
+}
+
+async function getPageMetadata_pageNode() {
+    
+    let pageMetadata = await Continuum.getPageMetadata();
+    await postScanMetadata( ctxScanApp.scanLogId, pageMetadata, ctxScanApp.currentScanSrc.scan_list_id ).then( scanResultsFound, scanResultsNotFound );
+
+}
+
 
 //STEP 5 - Run scans
 //=====================================
 
 async function scanResultsFound() {
+
     let accessibilityConcerns = await Continuum.getAccessibilityConcerns();
     let issLen = accessibilityConcerns.length;
 
@@ -298,6 +333,7 @@ async function getUrlsToScan() {
 
                 jsonResponse[y].scanned = false;                 
                 ctxScanApp.urlsToScan.push( jsonResponse[y] );
+                break;
 
             }
 
@@ -356,8 +392,62 @@ async function postScanRecord( msg, type, scanid = ctxScanApp.scanLogId, scan_li
             console.error(err);
         });
 
-    //if successful, store the scan id for later use.
-    //if error, kill the whole process so it can be resolved
+};
+
+
+/**
+ * Post both the page metadata, and the individual page metadata since
+ * they are retrieved as a single set of data.
+ * 
+ * @param {*} scanid This is expected to be a non-negative integer
+ * @param {*} metaDataObj Metadata in object format
+ * @param {*} scanListId The id of the element in the jtm-scan-list that is currently being scanned
+ */
+async function postScanMetadata( scanid = ctxScanApp.scanLogId, metaDataObj, scanListId ) {
+
+    console.log( "postScanMetadata(): scanListId =", scanListId );
+    
+    const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+	const targetPg = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/addMetadataToScan.php';
+
+    let metadataToAdd = {
+        "scanid": scanid,
+        "scanListId": scanListId,
+        "recordType": MSG_TYPE_UPDATE,
+        "browserWindowHeight": metaDataObj.height,
+        "browserWindowWidth": metaDataObj.width,
+        "redirectedUrl": encodeURI(metaDataObj.redirectedUrl),
+        "docHeight": metaDataObj.docHeight,
+        "docWidth": metaDataObj.docWidth,
+        "docTitle": encodeURI(metaDataObj.title),
+        "orientation" : metaDataObj.orientation,
+        "userAgent" : metaDataObj.userAgent
+    }
+
+    console.log( "metadata", metaDataObj );
+
+    let status;
+
+    await fetch( targetPg, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(metadataToAdd)
+    })
+        .then( (response) => {
+            status = response.status;
+            return response.json();
+        })
+        .then((jsonResponse) => {
+            console.log( "postScanMetadata(): status: ", status);
+            console.log( "postScanMetadata(): jsonResponse: ", jsonResponse );
+            //update ctxScanApp.currentScanSrc.scanMetadataPosted
+        })
+        .catch((err) => {
+            // handle error
+            console.error(err);
+        });
 
 };
 
