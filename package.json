@@ -9,10 +9,10 @@
 	"devDependencies": {
 		"@continuum/continuum-javascript-professional": "file:./lib/continuum-continuum-javascript-professional-5.0.1.tgz",
 		"chai": "4.2.0",
-		"chromedriver": "^110.0",
+		"chromedriver": "^112.0",
 		"cucumber": "6.0.5",
 		"global-agent": "2.1.8",
-		"selenium-webdriver": "3.6.0"
+		"selenium-webdriver": "^4.8.2"
 	},
 	"dependencies": {
 		"node-fetch": "^3.3.1",
