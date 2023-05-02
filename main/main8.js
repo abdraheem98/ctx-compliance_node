@@ -19,23 +19,6 @@ options.excludeSwitches(['enable-logging']); //prevents CLI msg clutter
 
 let driver = chrome.Driver.createSession(options, service);
 
-/*
-//Old code that works with Chrome version 110
-    const service = new chrome.ServiceBuilder(path).build();
-    chrome.setDefaultService(service);
-
-    //inserted by gb1175 1/27/22 to prevent CLI message clutter
-    //also includes the ".setChromeOptions() line below"
-    const options = new chrome.Options();
-    options.excludeSwitches(['enable-logging']);
-
-    //load the Chrome driver
-    let driver = new seleniumWebdriver.Builder()
-            .withCapabilities(seleniumWebdriver.Capabilities.chrome())
-            .setChromeOptions(options)
-            .build();
-*/
-
 //Load Continuum lib
 const {Continuum, ReportManagementStrategy, ModuleManagementStrategy} = require('@continuum/continuum-javascript-professional');
 
@@ -116,20 +99,26 @@ async function runScan_start() {
 
         //Start a scan record
         postScanRecord( `Beginning scan with ${scanListLen} sources.`, MSG_TYPE_UPDATE, ctxScanApp.scanRecordId );
-        console.log( `runScan_start(): Scanning ${scanListLen} pages` );
+        console.log( `runScan_start(): Scanning ${scanListLen} pages` ); 
         
         //Execute on scans
         for (let i=0; i<scanListLen; i++) {
             
             ctxScanApp.currentScanSrc = ctxScanApp.urlsToScan[i];
-            console.log( "now scanning: ", ctxScanApp.currentScanSrc.url );
+            console.log( " " ); 
+            console.log( "--------------------------------------------" ); 
+            console.log( "now scanning: ", ctxScanApp.currentScanSrc.url, " (scope:", ctxScanApp.currentScanSrc.scan_scope + ", scan list id:", ctxScanApp.currentScanSrc.scan_list_id + ")" );
             ctxScanApp.currentScanSrc.scanAttempted = true;
             ctxScanApp.currentScanSrc.scanMetadataPosted = false;
             
             await driver.get( ctxScanApp.currentScanSrc.url ).then( runScan_postInitialize, runScan_start_failed );
         };
         
-        console.log( `runScan_start(): Done running scans.` );
+        //console.log( `runScan_start(): Done running scans - starting wrapup.` );        
+        await doneScanningPages();
+
+        //console.log( `runScan_start(): Wrap-up done, beginning post processing.` );
+        await runPostProcessing();
 
     } else {
         
@@ -143,9 +132,9 @@ async function runScan_start() {
 }
 
 
-async function runScan_start_failed() {
+async function runScan_start_failed(error) {
 
-    console.log( "runScan_start_failed" );
+    console.log( "runScan_start_failed(): error =", error );
     postScanRecord(`Scan aborted - an error occurred starting up the scan for this source.`, MSG_TYPE_ERROR, ctxScanApp.scanRecordId, ctxScanApp.currentScanSrc.scan_list_id);
 
 }
@@ -253,7 +242,8 @@ async function scanResultsFound() {
     console.log("scanResultsFound(): Scan results length: ", accessibilityConcerns.length); 
     
     //Post issues found (or zero issues) - send regardless of issue count
-    sendAccessibilityConcernsToCTXAx( accessibilityConcerns ).then( postScanCleanup, sendAxConcernsFailed );
+    sendAccessibilityConcernsToCTXAx( accessibilityConcerns ).then( null, sendAxConcernsFailed );
+    //sendAccessibilityConcernsToCTXAx( accessibilityConcerns ).then( postScanCleanup, sendAxConcernsFailed );
     //sendAccessibilityConcernsToCTXAx( accessibilityConcerns ).then( runPostProcessing, sendAxConcernsFailed );
 
     //Post to CTX766
@@ -272,24 +262,23 @@ function scanResultsNotFound( error )  {
 
 }
 
-//Step 7 - Run post-processing of issues
-//=======================================
 
-async function runPostProcessing() {
-    
-    processStoredIssues().then( postScanCleanup, processingError );
+//Step 7 - Clean up scan routine, start post processing
+//=======================================================
 
-}
+async function doneScanningPages() {
 
-function processingError( error )  {
-
-    console.log( "processingError(): ", error );
-    postScanRecord(`Could not process accessibility issues.`, MSG_TYPE_ERROR, ctxScanApp.scanRecordId, ctxScanApp.currentScanSrc.scan_list_id);
+    postScanCleanup().then( null, postScanCleanupFailed );
 
 }
 
+async function postScanCleanupFailed( error ) {
 
-//STEP 7 - Post Request Cleanup or handle send failure
+    console.log( "postScanCleanupFailed(): ", error );
+
+}
+
+//STEP 8 - Post Request Cleanup or handle send failure
 //====================================================
 
 /**
@@ -302,45 +291,63 @@ async function postScanCleanup( force_close = false ) {
 
     if ( !force_close ) {
 
-        const scanListLen = ctxScanApp.urlsToScan.length;
-        let scanAttemptedForAllUrls = true;
-
-        for (let i=0; i<scanListLen; i++) {
-            if ( !ctxScanApp.urlsToScan[i].scanAttempted ) {
-                scanAttemptedForAllUrls = false;
-                break;
-            }
-        };
-
-        if ( scanAttemptedForAllUrls ) {
-
-            postScanRecord(`Full scan completed.`, MSG_TYPE_FINISH, ctxScanApp.scanRecordId);
-            console.log("postScanCleanup(): Scan attempted for all URLs - quitting driver");
-            
-            //request report
-            //buildfinalScanReport();
-            
-            if (driver) {
-                driver.quit();
-            } else {
-                console.log("postScanCleanup(): Could not find web driver session.");
-                driver.dispose();
-            }
-        }
-        
+        postScanRecord(`Full scan completed.`, MSG_TYPE_FINISH, ctxScanApp.scanRecordId);
+        //console.log("postScanCleanup(): Full scan completed."); 
+        quitDriver();
         
     } else {
         
         postScanRecord(`Closing aborted scan`, MSG_TYPE_FINISH, ctxScanApp.scanRecordId);
-        console.log("postScanCleanup(); Aborted scan - quitting driver");
-        if (driver) driver.quit();
+        console.log("postScanCleanup(): Aborted scan.");
+        quitDriver();
 
     }
 }
 
-
 async function sendAxConcernsFailed( error ) {
     console.log( "sendAxConcernsFailed(): error: ", error );
+}
+
+function quitDriver() {
+
+    if (driver) {
+        console.log("postScanCleanup(): Quitting driver normally.");
+        driver.quit();
+    } else {
+        console.log("postScanCleanup(): Could not find web driver session.");
+        driver.dispose();
+    } 
+}
+
+
+
+//Step 9 - Run post-processing of issues
+//=======================================
+
+async function runPostProcessing() {
+    
+    processStoredIssues().then( finalWrapup, processingError );
+
+}
+
+function processingError( error )  {
+
+    console.log( "processingError(): ", error );
+    postScanRecord(`Could not process accessibility issues.`, MSG_TYPE_ERROR, ctxScanApp.scanRecordId, ctxScanApp.currentScanSrc.scan_list_id);
+
+}
+
+//STEP 10 - final wrap-up
+//========================
+
+async function finalWrapup() {
+
+    console.log( " " );
+    console.log( "--------------------------------------------" ); 
+    console.log( "finalWrapup(): post-processing complete. Stopping." );
+    //run final report?
+    //buildfinalScanReport();
+
 }
 
 
@@ -381,12 +388,12 @@ async function buildfinalScanReport( scanid = ctxScanApp.scanRecordId ) {
             //console.log( "postScanRecord(): jsonResponse: ", jsonResponse );
 
             if ( 'new_scan_id' in jsonResponse ) {
-                ctxScanApp.scanRecordId = jsonResponse.new_scan_id;                
+                ctxScanApp.scanRecordId = jsonResponse.new_scan_id[0];                
             }
         })
         .catch((err) => {
             // handle error
-            console.error(err);
+            console.error( "buildfinalScanReport(): Error:", err );
         });
 
 };
@@ -420,22 +427,28 @@ async function getUrlsToScan() {
             //console.log( "getUrlsToScan(): Url data:", JSON.stringify( jsonResponse ) );
             */
             
-            let scanCountLimiter = 2;
+            let scanCountLimiter = 10;
             let currentScanIndex = 0;
             for (let y=0; y < jsonResponse.length; y++) {
                 
                 //DEBUG - skip if global
                 //if (jsonResponse[y].scan_scope == "node") continue;
 
+                //DEBUG - skip if not global
+                //if (jsonResponse[y].scan_scope !== "node") continue;
+
+                /*
                 //DEBUG - specific scan list
                 //let targetId = 850;
-                let targetId = 868; //Global nav header
+                //let targetId = 868; //Global nav header
                 //let targetId = 860; //small business 
+                let targetId = 742; //Global nav headband
                 if ( jsonResponse[y]['scan_list_id'] == targetId ) {
-                    console.log( "getUrlsToScan(): Excluding all urls except scan list id targetId." );
+                    console.log( "getUrlsToScan(): Excluding all urls except scan list id targetId", targetId );
                 } else {
                     continue;
                 }
+                */
 
                 //Complete scan
                 jsonResponse[y].scanAttempted = false;                 
@@ -452,7 +465,7 @@ async function getUrlsToScan() {
         })
         .catch((err) => {
             // handle error
-            console.error(err);
+            console.error( "getUrlsToScan(): error: ", err );
         });
 
 };
@@ -497,12 +510,12 @@ async function postScanRecord( msg, type, scanid = ctxScanApp.scanRecordId, scan
             //console.log( "postScanRecord(): jsonResponse: ", jsonResponse );
 
             if ( 'new_scan_id' in jsonResponse ) {
-                ctxScanApp.scanRecordId = jsonResponse.new_scan_id;                
+                ctxScanApp.scanRecordId = jsonResponse.new_scan_id[0];                
             }
         })
         .catch((err) => {
             // handle error
-            console.error(err);
+            console.error( "postScanRecord(): error:", err );
         });
 
 };
@@ -518,7 +531,7 @@ async function postScanRecord( msg, type, scanid = ctxScanApp.scanRecordId, scan
  */
 async function postScanMetadata( scanid = ctxScanApp.scanRecordId, metaDataObj, scanListId ) {
 
-    console.log( "postScanMetadata(): scanListId =", scanListId );
+    //console.log( "postScanMetadata(): scanListId =", scanListId );
     
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 	const targetPg = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/addMetadataToScan.php';
@@ -560,7 +573,7 @@ async function postScanMetadata( scanid = ctxScanApp.scanRecordId, metaDataObj, 
             //console.log( "postScanMetadata(): jsonResponse: ", jsonResponse );
 
             
-            if ( jsonResponse.scan_table_updated && jsonResponse.scan_record_updated && ctxScanApp.currentScanSrc.scanMetadataPosted == false ) {
+            if ( jsonResponse.scan_table_updated[0] && jsonResponse.scan_record_updated[0] && ctxScanApp.currentScanSrc.scanMetadataPosted == false ) {
                 ctxScanApp.currentScanSrc.scanMetadataPosted = true;
                 postScanRecord(`Source scan updated with metadata.`, MSG_TYPE_UPDATE, ctxScanApp.scanRecordId, ctxScanApp.currentScanSrc.scan_list_id);
                 postScanRecord(`Scan updated with metadata.`, MSG_TYPE_UPDATE, ctxScanApp.scanRecordId);
@@ -569,7 +582,7 @@ async function postScanMetadata( scanid = ctxScanApp.scanRecordId, metaDataObj, 
         })
         .catch((err) => {
             // handle error
-            console.error(err);
+            console.error( "postScanMetadata(): error:", err );
         });
 
 };
@@ -599,6 +612,7 @@ async function processStoredIssues() {
         .then( (response) => {
             status = response.status;
             return response.json();
+            //return response;
         })
         .then((jsonResponse) => {
             if ( status !== 200 ) console.log("processStoredIssues(): Status =", status);
@@ -624,6 +638,7 @@ async function sendAccessibilityConcernsToCTXAx( ampReportData ) {
 	//console.log(JSON.stringify(ampReportData, null, 2)); //easier to read
 	//console.log( ampReportData);
     //console.log( "ampReportData:", ampReportData[0].rawEngineJsonObject );
+    //console.log( "sendAccessibilityConcernsToCTXAx() scanRecordId = ", ctxScanApp.scanRecordId );
     
 	//had to use this approach since this is not a module
 	const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
@@ -660,12 +675,10 @@ async function sendAccessibilityConcernsToCTXAx( ampReportData ) {
         .then((jsonResponse) => {
             if ( status !== 200 ) console.log("sendAccessibilityConcernsToCTXAx(): Status =", status);
             console.log( "sendAccessibilityConcernsToCTXAx(): jsonResponse =", jsonResponse );
-            console.log( "-----------------------" );
-            console.log( " " );
         })
         .catch((err) => {
             // handle error
-            console.error(err);
+            console.error( "sendAccessibilityConcernsToCTXAx(): error: ", err );
         });
 
 }
