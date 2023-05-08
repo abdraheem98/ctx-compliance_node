@@ -76,6 +76,12 @@ async function getUrls_start() {
     
     //Now that the initial scan record is created, retrieve URLs for scanning
     await( getUrlsToScan() ).then( runScan_start, getUrls_failed );
+
+    //console.log( `runScan_start(): Done running scans - starting wrapup.` );        
+    await doneScanningPages();
+
+    //console.log( `runScan_start(): Wrap-up done, beginning post processing.` );
+    await runPostProcessing();
     
 };
 
@@ -113,12 +119,6 @@ async function runScan_start() {
             
             await driver.get( ctxScanApp.currentScanSrc.url ).then( runScan_postInitialize, runScan_start_failed );
         };
-        
-        //console.log( `runScan_start(): Done running scans - starting wrapup.` );        
-        await doneScanningPages();
-
-        //console.log( `runScan_start(): Wrap-up done, beginning post processing.` );
-        await runPostProcessing();
 
     } else {
         
@@ -326,7 +326,11 @@ function quitDriver() {
 
 async function runPostProcessing() {
     
-    processStoredIssues().then( finalWrapup, processingError );
+    await processStoredIssues().then( null, processingError );
+
+    //await gradeNewIssues();
+
+    await finalWrapup();
 
 }
 
@@ -427,7 +431,7 @@ async function getUrlsToScan() {
             //console.log( "getUrlsToScan(): Url data:", JSON.stringify( jsonResponse ) );
             */
             
-            let scanCountLimiter = 10;
+            let scanCountLimiter = 0;
             let currentScanIndex = 0;
             for (let y=0; y < jsonResponse.length; y++) {
                 
@@ -621,6 +625,46 @@ async function processStoredIssues() {
         .catch((err) => {
             // handle error
             console.error( "processStoredIssues(): fetch error =", err );
+        });
+
+}
+
+
+
+/**
+ * Once all issues have been successfully stored, 
+ */
+async function gradeNewIssues() {
+    
+	//had to use this approach since this is not a module
+	const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+	const gradingUrl = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/grading/process-grades.php';
+
+    //Integrate relevant metadata
+    let dataBlock = { 
+        scanRecordId: ctxScanApp.scanRecordId
+    };
+    
+    let status;
+    await fetch( gradingUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataBlock)
+    } )
+        .then( (response) => {
+            status = response.status;
+            return response.json();
+            //return response;
+        })
+        .then((jsonResponse) => {
+            if ( status !== 200 ) console.log("gradeNewIssues(): Status =", status);
+            console.log( "gradeNewIssues(): jsonResponse =", jsonResponse );
+        })
+        .catch((err) => {
+            // handle error
+            console.error( "gradeNewIssues(): fetch error =", err );
         });
 
 
