@@ -321,7 +321,7 @@ async function runPostProcessing() {
     
     await processStoredIssues().then( null, processingError );
 
-    //await gradeNewIssues();
+    await gradeNewIssues();
 
     await finalWrapup();
 
@@ -414,7 +414,7 @@ async function getUrlsToScan() {
         })
         .then((jsonResponse) => {
                         
-            let scanCountLimiter = 0;
+            let scanCountLimiter = 2;
             let currentScanIndex = 0;
             for (let y=0; y < jsonResponse.length; y++) {
                 
@@ -427,9 +427,9 @@ async function getUrlsToScan() {
                 /*
                 //DEBUG - specific scan list
                 //let targetId = 850;
-                //let targetId = 868; //Global nav header
+                let targetId = 868; //Global nav header
                 //let targetId = 860; //small business 
-                let targetId = 742; //Global nav headband
+                //let targetId = 742; //Global nav headband
                 if ( jsonResponse[y]['scan_list_id'] == targetId ) {
                     console.log( "getUrlsToScan(): Excluding all urls except scan list id targetId", targetId );
                 } else {
@@ -440,10 +440,10 @@ async function getUrlsToScan() {
                 //Complete scan
                 jsonResponse[y].scanAttempted = false;                 
                 ctxScanApp.urlsToScan.push( jsonResponse[y] );
-                currentScanIndex++;
                 
                 //DEBUG - limit # of items scanned
-                //if ( currentScanIndex > scanCountLimiter ) break;
+                //currentScanIndex++;
+                //if ( currclsentScanIndex > scanCountLimiter ) break;
 
                 //DEBUG - scan only 1 item
                 //break;
@@ -621,7 +621,7 @@ async function gradeNewIssues() {
     
 	//had to use this approach since this is not a module
 	const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-	const gradingUrl = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/grading/5_processGrades.php';
+	const gradingUrl = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/5_processGrades.php';
 
     //Integrate relevant metadata
     let dataBlock = { 
@@ -638,7 +638,7 @@ async function gradeNewIssues() {
         .then( (response) => {
             status = response.status;
             return response.json();
-            //return response;
+            //clsreturn response;
         })
         .then((jsonResponse) => {
             if ( status !== 200 ) console.log("gradeNewIssues(): Status =", status);
