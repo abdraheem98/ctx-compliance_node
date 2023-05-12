@@ -243,15 +243,6 @@ async function scanResultsFound() {
     
     //Post issues found (or zero issues) - send regardless of issue count
     sendAccessibilityConcernsToCTXAx( accessibilityConcerns ).then( null, sendAxConcernsFailed );
-    //sendAccessibilityConcernsToCTXAx( accessibilityConcerns ).then( postScanCleanup, sendAxConcernsFailed );
-    //sendAccessibilityConcernsToCTXAx( accessibilityConcerns ).then( runPostProcessing, sendAxConcernsFailed );
-
-    //Post to CTX766
-    //Not really that useful - later scripts will determine if issues truly were found.
-    //postScanRecord(`Scan found ${issLen} issues.`, MSG_TYPE_UPDATE, ctxScanApp.scanRecordId, ctxScanApp.currentScanSrc.scan_list_id).then( postScanCleanup, postScanCleanup );
-
-    //Post to AMP
-    //call here
 
 }
 
@@ -262,9 +253,11 @@ function scanResultsNotFound( error )  {
 
 }
 
-
-//Step 7 - Clean up scan routine, start post processing
-//=======================================================
+/**
+ * Step 7 - Clean up scan routine, start post processing 
+ * =======================================================
+ * This is called from getUrls_start()
+ */
 
 async function doneScanningPages() {
 
@@ -367,7 +360,7 @@ async function finalWrapup() {
 async function buildfinalScanReport( scanid = ctxScanApp.scanRecordId ) {
     
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-	const targetPg = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/buildFinalScanReport.php';
+	const targetPg = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/6_buildFinalScanReport.php';
 
     let scanLogMsg = {
         "scanid" : scanid,
@@ -409,7 +402,7 @@ async function buildfinalScanReport( scanid = ctxScanApp.scanRecordId ) {
 async function getUrlsToScan() {
     
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-	const urlListLoc = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/getUrlToScan.php';
+	const urlListLoc = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/1_getUrlToScan.php';
 
     let status;
     let urlsRetrieved;
@@ -420,17 +413,7 @@ async function getUrlsToScan() {
             return response.json();
         })
         .then((jsonResponse) => {
-            
-            //console.log( "getUrlsToScan(): Url data:", JSON.stringify( jsonResponse ) );
-
-            /*
-            //DEBUG - Get extra info
-            console.log( "getUrlsToScan(): Status:", status);
-            console.log( "getUrlsToScan(): Length:", jsonResponse.length);
-            console.log( "getUrlsToScan(): Type:", typeof 8jsonResponse );
-            //console.log( "getUrlsToScan(): Url data:", JSON.stringify( jsonResponse ) );
-            */
-            
+                        
             let scanCountLimiter = 0;
             let currentScanIndex = 0;
             for (let y=0; y < jsonResponse.length; y++) {
@@ -538,7 +521,7 @@ async function postScanMetadata( scanid = ctxScanApp.scanRecordId, metaDataObj, 
     //console.log( "postScanMetadata(): scanListId =", scanListId );
     
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-	const targetPg = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/addMetadataToScan.php';
+	const targetPg = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/2_addMetadataToScan.php';
 
     let metadataToAdd = {
         "scanMetadataAdded": ctxScanApp.currentScanSrc.scanMetadataPosted,
@@ -598,7 +581,7 @@ async function processStoredIssues() {
     
 	//had to use this approach since this is not a module
 	const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-	const ctxIntakeUrl = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/processStoredIssues.php';
+	const ctxIntakeUrl = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/4_processStoredIssues.php';
 
     //Integrate relevant metadata
     let dataBlock = { 
@@ -638,7 +621,7 @@ async function gradeNewIssues() {
     
 	//had to use this approach since this is not a module
 	const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-	const gradingUrl = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/grading/process-grades.php';
+	const gradingUrl = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/grading/5_processGrades.php';
 
     //Integrate relevant metadata
     let dataBlock = { 
@@ -650,8 +633,7 @@ async function gradeNewIssues() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(dataBlock)
+        }
     } )
         .then( (response) => {
             status = response.status;
@@ -686,7 +668,7 @@ async function sendAccessibilityConcernsToCTXAx( ampReportData ) {
     
 	//had to use this approach since this is not a module
 	const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-	const ctxIntakeUrl = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/postScanResults.php';
+	const ctxIntakeUrl = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/3_postScanResults.php';
 
     //Integrate relevant metadata
     let initialDataBlock = { 
