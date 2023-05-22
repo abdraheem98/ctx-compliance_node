@@ -3,9 +3,9 @@ Test file to see if we can run the scan without the test bed intervening.
 */
 
 //Load primary resources
-const seleniumWebdriver = require('selenium-webdriver');
+//const seleniumWebdriver = require('selenium-webdriver');
 const chrome = require('selenium-webdriver/chrome');
-const path = require('chromedriver').path;
+//const path = require('chromedriver').path;
 
 //Revised chrome selenium service code 4/14/23 - works with Chrome Driver version 112
 //See code at https://github.com/SeleniumHQ/selenium/blob/6222bb2a1fc6d88ae5ff11c8ab7af06ef875d0b9/javascript/node/selenium-webdriver/chrome.js#L62
@@ -414,7 +414,7 @@ async function getUrlsToScan() {
         })
         .then((jsonResponse) => {
                         
-            let scanCountLimiter = 2;
+            let scanCountLimiter = 1;
             let currentScanIndex = 0;
             for (let y=0; y < jsonResponse.length; y++) {
                 
@@ -443,7 +443,7 @@ async function getUrlsToScan() {
                 
                 //DEBUG - limit # of items scanned
                 //currentScanIndex++;
-                //if ( currclsentScanIndex > scanCountLimiter ) break;
+                //if ( currentScanIndex > scanCountLimiter ) break;
 
                 //DEBUG - scan only 1 item
                 //break;
