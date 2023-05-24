@@ -427,9 +427,10 @@ async function getUrlsToScan() {
                 /*
                 //DEBUG - specific scan list
                 //let targetId = 850;
-                let targetId = 868; //Global nav header
+                //let targetId = 868; //Global nav header
                 //let targetId = 860; //small business 
                 //let targetId = 742; //Global nav headband
+                let targetId = 812; //iPhone Pro Max 13
                 if ( jsonResponse[y]['scan_list_id'] == targetId ) {
                     console.log( "getUrlsToScan(): Excluding all urls except scan list id targetId", targetId );
                 } else {
