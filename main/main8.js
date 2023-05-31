@@ -45,11 +45,15 @@ ctxScanApp.currentScanSrc.scanMetadataPosted = false;
 
 ctxScanApp.currentScanSrc.metadata = {};
 
+ctxScanApp.scanTimestamp = getFullDateAndTime( new Date(), true, true);
+
 
 const MSG_TYPE_ERROR = "msg_type_error";
 const MSG_TYPE_FINISH = "msg_type_finish";
 const MSG_TYPE_START = "msg_type_start";
 const MSG_TYPE_UPDATE = "msg_type_update";
+
+
 
 /*
 * STEP 1 - Get Urls
@@ -364,7 +368,7 @@ async function buildfinalScanReport( scanid = ctxScanApp.scanRecordId ) {
 
     let scanLogMsg = {
         "scanid" : scanid,
-        "timestamp": getFullDateAndTime()
+        "timestamp": ctxScanApp.scanTimestamp
     }
 
     let status;
@@ -443,8 +447,8 @@ async function getUrlsToScan() {
                 ctxScanApp.urlsToScan.push( jsonResponse[y] );
                 
                 //DEBUG - limit # of items scanned
-                //currentScanIndex++;
-                //if ( currentScanIndex > scanCountLimiter ) break;
+                currentScanIndex++;
+                if ( currentScanIndex > scanCountLimiter ) break;
 
                 //DEBUG - scan only 1 item
                 //break;
@@ -466,7 +470,10 @@ async function getUrlsToScan() {
  * @param {*} scanid The id from the 'jtm_scans' entry, or -1 if it has not yet been established
  * @param {*} scan_list_id The id from the 'jtm_scan-list' table. This is optional since the record might not pertain to a specific jtm-scan-list id element.
  * @param {*} timestamp The timestamp for the record. It is rare to provide anything here - the function will provide the current time down to the seconds.
+ * 
  */
+
+
 async function postScanRecord( msg, type, scanid = ctxScanApp.scanRecordId, scan_list_id = -1, timestamp = new Date() ) {
     
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
@@ -477,7 +484,7 @@ async function postScanRecord( msg, type, scanid = ctxScanApp.scanRecordId, scan
         "type": type,
         "scanid" : scanid,
         "scanlistid" : scan_list_id,
-        "timestamp": getFullDateAndTime()
+        "timestamp": ctxScanApp.scanTimestamp
     }
 
     let status;
@@ -626,7 +633,8 @@ async function gradeNewIssues() {
 
     //Integrate relevant metadata
     let dataBlock = { 
-        scanRecordId: ctxScanApp.scanRecordId
+        scanRecordId: ctxScanApp.scanRecordId,
+        timestamp: ctxScanApp.scanTimestamp
     };
     
     let status;
@@ -634,16 +642,16 @@ async function gradeNewIssues() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify(dataBlock)
     } )
         .then( (response) => {
             status = response.status;
             return response.json();
-            //clsreturn response;
+            // return response;
         })
         .then((jsonResponse) => {
             if ( status !== 200 ) console.log("gradeNewIssues(): Status =", status);
-            console.log( "gradeNewIssues(): jsonResponse =", jsonResponse );
         })
         .catch((err) => {
             // handle error
@@ -710,7 +718,7 @@ async function sendAccessibilityConcernsToCTXAx( ampReportData ) {
 
 }
 
-function getFullDateAndTime( timestamp = new Date(), forceTwoDigits = true ) {
+function getFullDateAndTime( timestamp = new Date(), forceTwoDigits = true, getStringDate = false ) {
     
     //month
     let timeMonth = timestamp.getMonth();
@@ -742,13 +750,20 @@ function getFullDateAndTime( timestamp = new Date(), forceTwoDigits = true ) {
     
     //console.log( "dcaapJsUtils.getFullDateAndTime(): Month:", timeMonth, ", Day:",timeDay, ", Year:", timeYear, ", Hours:", timeHour, "Minutes:", timeMinutes, "Seconds:", timeSeconds );
 
-    return {
-        month: timeMonth,
-        day: timeDay,
-        year: timeYear,
-        hour: timeHour,
-        minute: timeMinutes,
-        second: timeSeconds
-    };
+    if ( getStringDate ) {
+
+     return timeMonth + "/" + timeDay +  "/" + timeYear + " " + timeHour + ":" + timeMinutes + ":" + timeSeconds;
+
+    } else {
+
+        return {
+            month: timeMonth,
+            day: timeDay,
+            year: timeYear,
+            hour: timeHour,
+            minute: timeMinutes,
+            second: timeSeconds
+        };
+    }
 
 };
