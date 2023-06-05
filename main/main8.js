@@ -85,7 +85,7 @@ async function getUrls_start() {
     await doneScanningPages();
 
     //console.log( `runScan_start(): Wrap-up done, beginning post processing.` );
-    await runPostProcessing();
+    // await runPostProcessing();
     
 };
 
@@ -410,6 +410,7 @@ async function getUrlsToScan() {
 
     let status;
     let urlsRetrieved;
+    let issuesToScan = [868];
 
     await fetch( urlListLoc )
         .then( (response) => {
@@ -441,14 +442,16 @@ async function getUrlsToScan() {
                     continue;
                 }
                 */
+               
+                if ( !issuesToScan.includes( parseInt(jsonResponse[y]['scan_list_id'] ))) continue;
 
                 //Complete scan
                 jsonResponse[y].scanAttempted = false;                 
                 ctxScanApp.urlsToScan.push( jsonResponse[y] );
                 
                 //DEBUG - limit # of items scanned
-                currentScanIndex++;
-                if ( currentScanIndex > scanCountLimiter ) break;
+                // currentScanIndex++;
+                // if ( currentScanIndex > scanCountLimiter ) break;
 
                 //DEBUG - scan only 1 item
                 //break;
