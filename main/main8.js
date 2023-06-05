@@ -410,7 +410,7 @@ async function getUrlsToScan() {
 
     let status;
     let urlsRetrieved;
-    let issuesToScan = [868];
+    // let issuesToScan = [868];
 
     await fetch( urlListLoc )
         .then( (response) => {
