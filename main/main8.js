@@ -77,16 +77,14 @@ async function getUrls_start() {
     //Post the initial scan record
     //The scan log id is expected to be -1 at this point.
     await postScanRecord(`Starting scan. Retrieving URLs from scan list.`, MSG_TYPE_START, ctxScanApp.scanRecordId, -1);
-    
     //Now that the initial scan record is created, retrieve URLs for scanning
     await( getUrlsToScan() ).then( runScan_start, getUrls_failed );
 
     //console.log( `runScan_start(): Done running scans - starting wrapup.` );        
     await doneScanningPages();
 
-    //console.log( `runScan_start(): Wrap-up done, beginning post processing.` );
-    // await runPostProcessing();
-    
+    // console.log( `runScan_start(): Wrap-up done, beginning post processing.` );
+    await runPostProcessing();
 };
 
 async function getUrls_failed() {
@@ -410,6 +408,7 @@ async function getUrlsToScan() {
 
     let status;
     let urlsRetrieved;
+    // DEBUG
     // let issuesToScan = [868];
 
     await fetch( urlListLoc )
@@ -442,8 +441,9 @@ async function getUrlsToScan() {
                     continue;
                 }
                 */
-               
-                if ( !issuesToScan.includes( parseInt(jsonResponse[y]['scan_list_id'] ))) continue;
+
+                // DEGUG
+                // if ( !issuesToScan.includes( parseInt(jsonResponse[y]['scan_list_id'] ))) continue;
 
                 //Complete scan
                 jsonResponse[y].scanAttempted = false;                 
