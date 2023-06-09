@@ -318,9 +318,8 @@ function quitDriver() {
 //=======================================
 
 async function runPostProcessing() {
-    await processStoredIssues().then( null, processingError );
-    await gradeNewIssues();
-    await finalWrapup();
+    await processStoredIssues().then( gradeNewIssues, processingError );
+    // await finalWrapup();
 }
 
 function processingError( error )  {
@@ -654,7 +653,7 @@ async function gradeNewIssues() {
             console.error( "gradeNewIssues(): fetch error =", err );
         });
 
-
+        await finalWrapup();
 }
 
 //DEBUG
