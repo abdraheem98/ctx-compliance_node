@@ -47,7 +47,6 @@ ctxScanApp.currentScanSrc.metadata = {};
 
 ctxScanApp.scanTimestamp = getFullDateAndTime( new Date(), true, true);
 
-
 const MSG_TYPE_ERROR = "msg_type_error";
 const MSG_TYPE_FINISH = "msg_type_finish";
 const MSG_TYPE_START = "msg_type_start";
@@ -80,9 +79,8 @@ async function getUrls_start() {
     //Now that the initial scan record is created, retrieve URLs for scanning
     await( getUrlsToScan() ).then( runScan_start, getUrls_failed );
 
-    //console.log( `runScan_start(): Done running scans - starting wrapup.` );        
+    //console.log( `runScan_start(): Done running scans - starting wrapup.` );
     await doneScanningPages();
-
     // console.log( `runScan_start(): Wrap-up done, beginning post processing.` );
     await runPostProcessing();
 };
@@ -320,13 +318,8 @@ function quitDriver() {
 //=======================================
 
 async function runPostProcessing() {
-    
-    await processStoredIssues().then( null, processingError );
-
-    await gradeNewIssues();
-
-    await finalWrapup();
-
+    await processStoredIssues().then( gradeNewIssues, processingError );
+    // await finalWrapup();
 }
 
 function processingError( error )  {
@@ -409,7 +402,7 @@ async function getUrlsToScan() {
     let status;
     let urlsRetrieved;
     // DEBUG
-    // let issuesToScan = [868];
+    // let issuesToScan = [868, 880];
 
     await fetch( urlListLoc )
         .then( (response) => {
@@ -477,7 +470,7 @@ async function getUrlsToScan() {
  */
 
 
-async function postScanRecord( msg, type, scanid = ctxScanApp.scanRecordId, scan_list_id = -1, timestamp = new Date() ) {
+async function postScanRecord( msg, type, scanid = ctxScanApp.scanRecordId, scan_list_id = -1, timestamp = ctxScanApp.scanTimestamp) {
     
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 	const targetPg = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/postScanRecord.php';
@@ -487,9 +480,9 @@ async function postScanRecord( msg, type, scanid = ctxScanApp.scanRecordId, scan
         "type": type,
         "scanid" : scanid,
         "scanlistid" : scan_list_id,
-        "timestamp": ctxScanApp.scanTimestamp
+        "timestamp": timestamp
     }
-
+    // console.log(JSON.stringify(scanLogMsg))
     let status;
 
     await fetch( targetPg, {
@@ -504,9 +497,8 @@ async function postScanRecord( msg, type, scanid = ctxScanApp.scanRecordId, scan
             return response.json();
         })
         .then((jsonResponse) => {
-            //console.log( "postScanRecord(): status: ", status);
-            //console.log( "postScanRecord(): jsonResponse: ", jsonResponse );
-
+            // console.log( "postScanRecord(): status: ", status);
+            // console.log( "postScanRecord(): jsonResponse: ", jsonResponse );
             if ( 'new_scan_id' in jsonResponse ) {
                 ctxScanApp.scanRecordId = jsonResponse.new_scan_id[0];                
             }
@@ -661,7 +653,7 @@ async function gradeNewIssues() {
             console.error( "gradeNewIssues(): fetch error =", err );
         });
 
-
+        await finalWrapup();
 }
 
 //DEBUG
@@ -737,7 +729,6 @@ function getFullDateAndTime( timestamp = new Date(), forceTwoDigits = true, getS
     //year
     let timeYear = timestamp.getFullYear();
     timeYear = timeYear.toString();
-    if ( forceTwoDigits ) timeYear = timeYear.substring(2);
     
     //hours
     let timeHour = timestamp.getHours();
@@ -749,13 +740,19 @@ function getFullDateAndTime( timestamp = new Date(), forceTwoDigits = true, getS
     
     //seconds
     let timeSeconds = timestamp.getSeconds();
-    timeSeconds = timeSeconds.toString();
-    
-    //console.log( "dcaapJsUtils.getFullDateAndTime(): Month:", timeMonth, ", Day:",timeDay, ", Year:", timeYear, ", Hours:", timeHour, "Minutes:", timeMinutes, "Seconds:", timeSeconds );
+
+    // Add 0 digit to timeSeconds
+    if (timeSeconds<10){
+        timeSeconds = '0' + timeSeconds.toString();
+    } else {
+        timeSeconds = timeSeconds.toString();
+    }
+
+    // console.log(timeYear + "-" + timeMonth +  "-" + timeDay + " " + timeHour + ":" + timeMinutes + ":" + timeSeconds)
 
     if ( getStringDate ) {
-
-     return timeMonth + "/" + timeDay +  "/" + timeYear + " " + timeHour + ":" + timeMinutes + ":" + timeSeconds;
+        //CP: Use the default PostgreSQL format: YYYY-MM-DD HH24:mm:ss
+        return timeYear + "-" + timeMonth +  "-" + timeDay + " " + timeHour + ":" + timeMinutes + ":" + timeSeconds;
 
     } else {
 
