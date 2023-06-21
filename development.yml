@@ -74,7 +74,7 @@ stages:
           - task: DeleteFiles@1
             inputs:
               SourceFolder: '$(System.DefaultWorkingDirectory)'
-              Contents: '*.*'
+              Contents: 'ax_nodejs/'
           - task: AzureWebApp@1
             displayName: 'Azure Web App Deploy: adeptweb-westus2-dev-app-02'
             inputs:
