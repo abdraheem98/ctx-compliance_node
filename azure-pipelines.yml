@@ -7,7 +7,7 @@ trigger:
 - development
 
 pool:
-  name: 27111-westus2-devops-AgentPool-vmss-3
+  name: ubuntu-latest
   demands:
   - npm
   - node.js
