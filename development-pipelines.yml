@@ -18,7 +18,7 @@ variables:
   environmentName: 'adeptweb-westus2-dev-app-02'
 
   # Agent VM image name
-  vmImageName: 'ubuntu-latest'
+  vmImageName: '27111-westus2-devops-AgentPool-vmss-3'
 
 stages:
 - stage: Build
