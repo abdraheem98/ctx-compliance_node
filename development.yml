@@ -6,6 +6,9 @@
 trigger:
 - development
 
+pool:
+  name: 27111-westus2-devops-AgentPool-vmss-3
+
 variables:
 
   # Azure Resource Manager connection created during pipeline creation
@@ -26,12 +29,13 @@ stages:
   jobs:
   - job: Build
     displayName: Build
-    pool: 27111-westus2-devops-AgentPool-vmss-3
+    pool: 
+      vmImage: $(vmImageName)
 
     steps:
     - task: NodeTool@0
       inputs:
-        versionSpec: '10.x'
+        versionSpec: '18.x'
       displayName: 'Install Node.js'
 
     - script: |
@@ -60,7 +64,8 @@ stages:
   - deployment: Deploy
     displayName: Deploy
     environment: $(environmentName)
-    pool: 27111-westus2-devops-AgentPool-vmss-3
+    # pool: 
+    #   vmImage: $(vmImageName)
     strategy:
       runOnce:
         deploy:
