@@ -18,7 +18,7 @@ variables:
   environmentName: 'adeptweb-westus2-dev-app-02'
 
   # Agent VM image name
-  vmImageName: 27111-westus2-devops-AgentPool-vmss-3
+  vmImageName: 'ubuntu-latest'
 
 stages:
 - stage: Build
@@ -26,8 +26,7 @@ stages:
   jobs:
   - job: Build
     displayName: Build
-    pool:
-      vmImage: $(vmImageName)
+    pool: 27111-westus2-devops-AgentPool-vmss-3
 
     steps:
     - task: NodeTool@0
@@ -61,8 +60,7 @@ stages:
   - deployment: Deploy
     displayName: Deploy
     environment: $(environmentName)
-    pool:
-      vmImage: $(vmImageName)
+    pool: 27111-westus2-devops-AgentPool-vmss-3
     strategy:
       runOnce:
         deploy:
