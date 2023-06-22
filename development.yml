@@ -74,8 +74,5 @@ stages:
             displayName: 'Azure Web App Deploy: adeptweb-westus2-dev-app-02'
             inputs:
               azureSubscription: $(azureSubscription)
-              appType: webAppLinux
               appName: $(webAppName)
-              runtimeStack: 'NODE|18'
               package: $(Pipeline.Workspace)/drop/$(Build.BuildId).zip
-              startUpCommand: 'npm run start'
