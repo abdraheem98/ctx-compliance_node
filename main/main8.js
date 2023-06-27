@@ -175,7 +175,8 @@ async function runScan_getResults() {
         //error - this is a global component, but the node_path is missing
         //This should be noted, but it should not break the chain of scanning
         
-        postScanRecord(`Found a global component with no node_path, can't complete scan of this source.`, MSG_TYPE_ERROR, ctxScanApp.scanRecordId, ctxScanApp.currentScanSrc.scan_list_id);
+        postScanRecord("runScan_getResults(): Found a global component with no node_path, cannot complete scan of this source.", MSG_TYPE_ERROR, ctxScanApp.scanRecordId, ctxScanApp.currentScanSrc.scan_list_id);
+        console.log("runScan_getResults(): Found a global component with no node_path, cannot complete scan of this source.", " Scan record id: " + ctxScanApp.scanRecordId, ", Scan list id: " + ctxScanApp.currentScanSrc.scan_list_id);
         //throw( `getScanResults(): Source id ${ ctxScanApp.currentScanSrc.scan_list_id} is set to global, but does not have a node_path value.` )
         
     } else if ( ctxScanApp.currentScanSrc.scan_scope == "node" && ctxScanApp.currentScanSrc.node_path !== null ) {
@@ -421,19 +422,18 @@ async function getUrlsToScan() {
                 //DEBUG - skip if not global
                 //if (jsonResponse[y].scan_scope !== "node") continue;
 
-                /*
                 //DEBUG - specific scan list
                 //let targetId = 850;
                 //let targetId = 868; //Global nav header
                 //let targetId = 860; //small business 
                 //let targetId = 742; //Global nav headband
-                let targetId = 812; //iPhone Pro Max 13
-                if ( jsonResponse[y]['scan_list_id'] == targetId ) {
-                    console.log( "getUrlsToScan(): Excluding all urls except scan list id targetId", targetId );
-                } else {
-                    continue;
-                }
-                */
+                
+                // let targetId = 793; //Legal terms - consumer service agreement
+                // if ( jsonResponse[y]['scan_list_id'] == targetId ) {
+                //     console.log( "getUrlsToScan(): Excluding all urls except scan list id targetId", targetId );
+                // } else {
+                //     continue;
+                // }
 
                 // DEGUG
                 // if ( !issuesToScan.includes( parseInt(jsonResponse[y]['scan_list_id'] ))) continue;
