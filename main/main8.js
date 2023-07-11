@@ -779,7 +779,7 @@ function getFullDateAndTime(timestamp = new Date(), forceTwoDigits = true, getSt
  */
 async function createScanReport() {
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-    const targetPg = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/exportScanReportToPDF.php';
+    const targetPg = 'http://localhost/ax_dash_pg/cal/apps/aud/scanpost/emailScanReport.php';
 
     await fetch(targetPg, {
         method: 'GET',
