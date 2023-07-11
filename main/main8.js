@@ -86,8 +86,6 @@ async function getUrls_start() {
     await doneScanningPages();
     // console.log( `runScan_start(): Wrap-up done, beginning post processing.` );
     await runPostProcessing();
-    // console.log( `createScanReport(): Emailing the scan report` );
-    await createScanReport();
 };
 
 async function getUrls_failed() {
@@ -343,8 +341,8 @@ async function finalWrapup() {
     console.log(" ");
     console.log("--------------------------------------------");
     console.log("finalWrapup(): post-processing complete. Stopping.");
-    //run final report?
-    //buildfinalScanReport();
+    console.log("createScanReport(): Emailing the Scan Report");
+    await createScanReport();
 
 }
 
@@ -658,6 +656,7 @@ async function gradeNewIssues() {
         });
 
     await finalWrapup();
+
 }
 
 //DEBUG
