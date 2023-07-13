@@ -4,7 +4,7 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
 
 trigger:
-- development
+- production
 
 pool:
   name: 27111-westus2-devops-AgentPool-vmss-3
