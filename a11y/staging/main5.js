@@ -133,7 +133,7 @@ async function runScan_postInit_failed( error ) {
 async function scanResultsFound() {
     let accessibilityConcerns = await Continuum.getAccessibilityConcerns();
 
-    //move the fingerprint object into the main object so it can be converted to JSON
+    //move the fingerprint object into the a11y object so it can be converted to JSON
     issLen = accessibilityConcerns.length;
     for ( let i=0; i<issLen; i++ ) {
         accessibilityConcerns[i]._fingerprint = accessibilityConcerns[i]._rawEngineJsonObject.fingerprint

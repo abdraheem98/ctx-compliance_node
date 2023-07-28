@@ -17,6 +17,10 @@ You can have this sample project test different URLs by modifying the `features/
 1. Run accessibility tests:
 
         npm test
+
+2. Run a scan
+
+        node a11y/main
         
 Note that if you encounter an error like the following:
 
