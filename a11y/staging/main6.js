@@ -222,7 +222,7 @@ async function scanResultsFound() {
 
         postScanRecord(`Scan found ${issLen} issues.`, MSG_TYPE_UPDATE, ctxScanApp.scanLogId, ctxScanApp.currentScanSrc.scan_list_id);
         
-        //move the fingerprint object into the a11y object so it can be converted to JSON
+        //move the fingerprint object into the main object so it can be converted to JSON
         for ( let i=0; i<issLen; i++ ) {
             accessibilityConcerns[i]._fingerprint = accessibilityConcerns[i]._rawEngineJsonObject.fingerprint
         }
