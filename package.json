@@ -7,7 +7,7 @@
 		"test": "./node_modules/.bin/cucumber-js --require features/steps/"
 	},
 	"devDependencies": {
-		"@continuum/continuum-javascript-professional": "file:./lib/continuum-continuum-javascript-professional-5.0.1.tgz",
+		"@continuum/continuum-javascript-professional": "file:./lib/continuum-continuum-javascript-professional-5.1.0.tgz",
 		"chai": "4.2.0",
 		"chromedriver": "^114.0",
 		"cucumber": "6.0.5",
