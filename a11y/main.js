@@ -36,7 +36,7 @@ ctxScanApp.urlsToScan = [];
 //The scan log id identifies the active scan record where log entries
 //are posted. Initially, the value is -1, and it is updated by the first
 //log post to a valid scan id.
-ctxScanApp.scanRecordId = -1;
+ctxScanApp.scanId = -1;
 
 //The current source data object to scan
 ctxScanApp.currentScanSrc = {};
@@ -102,7 +102,7 @@ async function getUrls_start() {
 
     //Post the initial scan record
     //The scan log id is expected to be -1 at this point.
-    await postScanRecord(`Starting scan. Retrieving URLs from scan list.`, MSG_TYPE_START, ctxScanApp.scanRecordId, -1);
+    await postScanRecord(`Starting scan. Retrieving URLs from scan list.`, MSG_TYPE_START, ctxScanApp.scanId, -1);
     //Now that the initial scan record is created, retrieve URLs for scanning
     await (getUrlsToScan()).then(runScan_start, getUrls_failed);
 
@@ -115,7 +115,7 @@ async function getUrls_start() {
 async function getUrls_failed() {
 
     console.log("URL Retrieval failed");
-    await postScanRecord(`Aborted scan with no pages completed. Unable to retrieve URLs from scan list.`, MSG_TYPE_UPDATE, ctxScanApp.scanRecordId, -1);
+    await postScanRecord(`Aborted scan with no pages completed. Unable to retrieve URLs from scan list.`, MSG_TYPE_UPDATE, ctxScanApp.scanId, -1);
 
     let forceCleanup = true;
     await postScanCleanup(forceCleanup);
@@ -131,7 +131,7 @@ async function runScan_start() {
     if (scanListLen > 0) {
 
         //Start a scan record
-        postScanRecord(`Beginning scan with ${scanListLen} sources.`, MSG_TYPE_UPDATE, ctxScanApp.scanRecordId);
+        postScanRecord(`Beginning scan with ${scanListLen} sources.`, MSG_TYPE_UPDATE, ctxScanApp.scanId);
         console.log(`runScan_start(): Scanning ${scanListLen} pages`);
 
         //Execute on scans
@@ -151,7 +151,7 @@ async function runScan_start() {
     } else {
 
         //Nothing to scan
-        await postScanRecord(`Aborted scan - no pages to scan.`, MSG_TYPE_ERROR, ctxScanApp.scanRecordId);
+        await postScanRecord(`Aborted scan - no pages to scan.`, MSG_TYPE_ERROR, ctxScanApp.scanId);
 
         let forceCleanup = true;
         await postScanCleanup(forceCleanup);
@@ -163,7 +163,7 @@ async function runScan_start() {
 async function runScan_start_failed(error) {
 
     console.log("runScan_start_failed(): error =", error);
-    postScanRecord(`Scan aborted - an error occurred starting up the scan for this source.`, MSG_TYPE_ERROR, ctxScanApp.scanRecordId, ctxScanApp.currentScanSrc.scan_list_id);
+    postScanRecord(`Scan aborted - an error occurred starting up the scan for this source.`, MSG_TYPE_ERROR, ctxScanApp.scanId, ctxScanApp.currentScanSrc.scan_list_id);
 
 }
 
@@ -180,7 +180,7 @@ async function runScan_postInitialize() {
 async function runScan_postInit_failed(error) {
 
     console.log("runScan_postInit_failed. error: ", error);
-    postScanRecord(`Scan aborted - could not set Chrome driver to this source.`, MSG_TYPE_ERROR, ctxScanApp.scanRecordId, ctxScanApp.currentScanSrc.scan_list_id);
+    postScanRecord(`Scan aborted - could not set Chrome driver to this source.`, MSG_TYPE_ERROR, ctxScanApp.scanId, ctxScanApp.currentScanSrc.scan_list_id);
 }
 
 
@@ -203,8 +203,8 @@ async function runScan_getResults() {
         //error - this is a global component, but the node_path is missing
         //This should be noted, but it should not break the chain of scanning
 
-        postScanRecord("runScan_getResults(): Found a global component with no node_path, cannot complete scan of this source.", MSG_TYPE_ERROR, ctxScanApp.scanRecordId, ctxScanApp.currentScanSrc.scan_list_id);
-        console.log("runScan_getResults(): Found a global component with no node_path, cannot complete scan of this source.", " Scan record id: " + ctxScanApp.scanRecordId, ", Scan list id: " + ctxScanApp.currentScanSrc.scan_list_id);
+        postScanRecord("runScan_getResults(): Found a global component with no node_path, cannot complete scan of this source.", MSG_TYPE_ERROR, ctxScanApp.scanId, ctxScanApp.currentScanSrc.scan_list_id);
+        console.log("runScan_getResults(): Found a global component with no node_path, cannot complete scan of this source.", " Scan record id: " + ctxScanApp.scanId, ", Scan list id: " + ctxScanApp.currentScanSrc.scan_list_id);
         //throw( `getScanResults(): Source id ${ ctxScanApp.currentScanSrc.scan_list_id} is set to global, but does not have a node_path value.` )
 
     } else if (ctxScanApp.currentScanSrc.scan_scope == "node" && ctxScanApp.currentScanSrc.node_path !== null) {
@@ -237,14 +237,14 @@ async function getNodeScanResults() {
 async function getPageMetadata_fullPage() {
 
     let pageMetadata = await Continuum.getPageMetadata();
-    await postScanMetadata(ctxScanApp.scanRecordId, pageMetadata, ctxScanApp.currentScanSrc.scan_list_id).then(scanResultsFound, scanResultsNotFound);
+    await postScanMetadata(ctxScanApp.scanId, pageMetadata, ctxScanApp.currentScanSrc.scan_list_id).then(scanResultsFound, scanResultsNotFound);
 
 }
 
 async function getPageMetadata_pageNode() {
 
     let pageMetadata = await Continuum.getPageMetadata();
-    await postScanMetadata(ctxScanApp.scanRecordId, pageMetadata, ctxScanApp.currentScanSrc.scan_list_id).then(scanResultsFound, scanResultsNotFound);
+    await postScanMetadata(ctxScanApp.scanId, pageMetadata, ctxScanApp.currentScanSrc.scan_list_id).then(scanResultsFound, scanResultsNotFound);
 
 }
 
@@ -278,7 +278,7 @@ async function scanResultsFound() {
 function scanResultsNotFound(error) {
 
     console.log("scanResultsNotFound(): ", error);
-    postScanRecord(`Could not retrieve accessibility concerns for this source.`, MSG_TYPE_ERROR, ctxScanApp.scanRecordId, ctxScanApp.currentScanSrc.scan_list_id);
+    postScanRecord(`Could not retrieve accessibility concerns for this source.`, MSG_TYPE_ERROR, ctxScanApp.scanId, ctxScanApp.currentScanSrc.scan_list_id);
 
 }
 
@@ -313,13 +313,13 @@ async function postScanCleanup(force_close = false) {
 
     if (!force_close) {
 
-        postScanRecord(`Full scan completed.`, MSG_TYPE_FINISH, ctxScanApp.scanRecordId);
+        postScanRecord(`Full scan completed.`, MSG_TYPE_FINISH, ctxScanApp.scanId);
         //console.log("postScanCleanup(): Full scan completed."); 
         quitDriver();
 
     } else {
 
-        postScanRecord(`Closing aborted scan`, MSG_TYPE_FINISH, ctxScanApp.scanRecordId);
+        postScanRecord(`Closing aborted scan`, MSG_TYPE_FINISH, ctxScanApp.scanId);
         console.log("postScanCleanup(): Aborted scan.");
         quitDriver();
 
@@ -346,14 +346,18 @@ function quitDriver() {
 //=======================================
 
 async function runPostProcessing() {
-    await processStoredIssues().then(gradeNewIssues, processingError);
+    
+    //DEBUG - commeting out processing of issues so we can do it step by step
+    //await processStoredIssues().then(gradeNewIssues, processingError);
+
+    //Glenn - 8/21 - this is already commented out.
     // await finalWrapup();
 }
 
 function processingError(error) {
 
     console.log("processingError(): ", error);
-    postScanRecord(`Could not process accessibility issues.`, MSG_TYPE_ERROR, ctxScanApp.scanRecordId, ctxScanApp.currentScanSrc.scan_list_id);
+    postScanRecord(`Could not process accessibility issues.`, MSG_TYPE_ERROR, ctxScanApp.scanId, ctxScanApp.currentScanSrc.scan_list_id);
 
 }
 
@@ -380,7 +384,7 @@ async function finalWrapup() {
 /**
  * Post scan results to the CTX database.
  */
-async function buildfinalScanReport(scanid = ctxScanApp.scanRecordId) {
+async function buildfinalScanReport(scanid = ctxScanApp.scanId) {
 
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
     const targetPg = hostname+ localRoot + 'cal/apps/aud/scanpost/6_buildFinalScanReport.php';
@@ -408,7 +412,7 @@ async function buildfinalScanReport(scanid = ctxScanApp.scanRecordId) {
             //console.log( "postScanRecord(): jsonResponse: ", jsonResponse );
 
             if ('new_scan_id' in jsonResponse) {
-                ctxScanApp.scanRecordId = jsonResponse.new_scan_id[0];
+                ctxScanApp.scanId = jsonResponse.new_scan_id[0];
             }
         })
         .catch((err) => {
@@ -497,7 +501,7 @@ async function getUrlsToScan() {
  */
 
 
-async function postScanRecord(msg, type, scanid = ctxScanApp.scanRecordId, scan_list_id = -1, timestamp = ctxScanApp.scanTimestamp) {
+async function postScanRecord(msg, type, scanid = ctxScanApp.scanId, scan_list_id = -1, timestamp = ctxScanApp.scanTimestamp) {
 
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
     const targetPg = hostname+ localRoot + 'cal/apps/aud/scanpost/postScanRecord.php';
@@ -527,7 +531,7 @@ async function postScanRecord(msg, type, scanid = ctxScanApp.scanRecordId, scan_
             // console.log( "postScanRecord(): status: ", status);
             // console.log( "postScanRecord(): jsonResponse: ", jsonResponse );
             if ('new_scan_id' in jsonResponse) {
-                ctxScanApp.scanRecordId = jsonResponse.new_scan_id[0];
+                ctxScanApp.scanId = jsonResponse.new_scan_id[0];
             }
         })
         .catch((err) => {
@@ -546,7 +550,7 @@ async function postScanRecord(msg, type, scanid = ctxScanApp.scanRecordId, scan_
  * @param {*} metaDataObj Metadata in object format
  * @param {*} scanListId The id of the element in the jtm-scan-list that is currently being scanned
  */
-async function postScanMetadata(scanid = ctxScanApp.scanRecordId, metaDataObj, scanListId) {
+async function postScanMetadata(scanid = ctxScanApp.scanId, metaDataObj, scanListId) {
 
     //console.log( "postScanMetadata(): scanListId =", scanListId );
 
@@ -592,8 +596,8 @@ async function postScanMetadata(scanid = ctxScanApp.scanRecordId, metaDataObj, s
 
             if (jsonResponse.scan_table_updated[0] && jsonResponse.scan_record_updated[0] && ctxScanApp.currentScanSrc.scanMetadataPosted == false) {
                 ctxScanApp.currentScanSrc.scanMetadataPosted = true;
-                postScanRecord(`Source scan updated with metadata.`, MSG_TYPE_UPDATE, ctxScanApp.scanRecordId, ctxScanApp.currentScanSrc.scan_list_id);
-                postScanRecord(`Scan updated with metadata.`, MSG_TYPE_UPDATE, ctxScanApp.scanRecordId);
+                postScanRecord(`Source scan updated with metadata.`, MSG_TYPE_UPDATE, ctxScanApp.scanId, ctxScanApp.currentScanSrc.scan_list_id);
+                postScanRecord(`Scan updated with metadata.`, MSG_TYPE_UPDATE, ctxScanApp.scanId);
             }
 
         })
@@ -615,7 +619,7 @@ async function processStoredIssues() {
 
     //Integrate relevant metadata
     let dataBlock = {
-        scanRecordId: ctxScanApp.scanRecordId
+        scanRecordId: ctxScanApp.scanId
     };
 
     let status;
@@ -654,7 +658,7 @@ async function gradeNewIssues() {
 
     //Integrate relevant metadata
     let dataBlock = {
-        scanRecordId: ctxScanApp.scanRecordId,
+        scanRecordId: ctxScanApp.scanId,
         timestamp: ctxScanApp.scanTimestamp
     };
 
@@ -696,7 +700,7 @@ async function sendAccessibilityConcernsToCTXAx(ampReportData) {
     //console.log(JSON.stringify(ampReportData, null, 2)); //easier to read
     //console.log( ampReportData);
     //console.log( "ampReportData:", ampReportData[0].rawEngineJsonObject );
-    //console.log( "sendAccessibilityConcernsToCTXAx() scanRecordId = ", ctxScanApp.scanRecordId );
+    //console.log( "sendAccessibilityConcernsToCTXAx() scanRecordId = ", ctxScanApp.scanId );
 
     //had to use this approach since this is not a module
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
@@ -709,7 +713,7 @@ async function sendAccessibilityConcernsToCTXAx(ampReportData) {
         intendedUrl: ctxScanApp.currentScanSrc.url,
         scan_scope: ctxScanApp.currentScanSrc.scan_scope,
         intendedScanListId: ctxScanApp.currentScanSrc.scan_list_id,
-        scanRecordId: ctxScanApp.scanRecordId
+        scanRecordId: ctxScanApp.scanId
     };
 
     ampReportData.unshift(initialDataBlock);
