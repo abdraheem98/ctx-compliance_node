@@ -60,8 +60,7 @@ const MSG_TYPE_UPDATE = "msg_type_update";
 * Declare the environment variables
 * */
 
-//environment = process.env.NODE_ENV
-environment = 'local';
+environment = process.env.NODE_ENV
 
 /*
 * Generate the hostname based off the env
@@ -75,9 +74,9 @@ else throw new Error("the environment variable is not defined.");
 /*
 * Generate local root value to manage connection
 */
-let localRoot = '/CTX_A11Y_Dash_Working/CTX_A11Y_Dash_Working/';
+let localRoot = '/CTX_A11Y_Dash_Working/';
 
-if (environment === 'local') localRoot = '/CTX_A11Y_Dash_Working/CTX_A11Y_Dash_Working/'
+if (environment === 'local') localRoot = '/CTX_A11Y_Dash_Working/'
 else if (environment === 'development') localRoot = ""
 else if (environment === 'production') localRoot = "";
 
@@ -387,7 +386,7 @@ async function finalWrapup() {
 async function buildfinalScanReport(scanid = ctxScanApp.scanId) {
 
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-    const targetPg = hostname+ localRoot + 'cal/apps/aud/scanpost/6_buildFinalScanReport.php';
+    const targetPg = hostname + localRoot + 'cal/apps/aud/scanpost/6_buildFinalScanReport.php';
 
     let scanLogMsg = {
         "scanid": scanid,
@@ -429,7 +428,7 @@ async function buildfinalScanReport(scanid = ctxScanApp.scanId) {
 async function getUrlsToScan() {
 
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-    const urlListLoc = hostname+ localRoot + 'cal/apps/aud/scanpost/1_getUrlToScan.php';
+    const urlListLoc = hostname + localRoot + 'cal/apps/aud/scanpost/1_getUrlToScan.php';
 
     let status;
     let urlsRetrieved;
@@ -504,7 +503,7 @@ async function getUrlsToScan() {
 async function postScanRecord(msg, type, scanid = ctxScanApp.scanId, scan_list_id = -1, timestamp = ctxScanApp.scanTimestamp) {
 
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-    const targetPg = hostname+ localRoot + 'cal/apps/aud/scanpost/postScanRecord.php';
+    const targetPg = hostname + localRoot + 'cal/apps/aud/scanpost/postScanRecord.php';
 
     let scanLogMsg = {
         "msg": msg,
@@ -555,7 +554,7 @@ async function postScanMetadata(scanid = ctxScanApp.scanId, metaDataObj, scanLis
     //console.log( "postScanMetadata(): scanListId =", scanListId );
 
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-    const targetPg = hostname+ localRoot + 'cal/apps/aud/scanpost/2_addMetadataToScan.php';
+    const targetPg = hostname + localRoot + 'cal/apps/aud/scanpost/2_addMetadataToScan.php';
 
     let metadataToAdd = {
         "scanMetadataAdded": ctxScanApp.currentScanSrc.scanMetadataPosted,
@@ -615,7 +614,7 @@ async function processStoredIssues() {
 
     //had to use this approach since this is not a module
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-    const ctxIntakeUrl = hostname+ localRoot + 'cal/apps/aud/scanpost/4_processStoredIssues.php';
+    const ctxIntakeUrl = hostname + localRoot + 'cal/apps/aud/scanpost/4_processStoredIssues.php';
 
     //Integrate relevant metadata
     let dataBlock = {
@@ -654,7 +653,7 @@ async function gradeNewIssues() {
 
     //had to use this approach since this is not a module
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-    const gradingUrl = hostname+ localRoot + 'cal/apps/aud/scanpost/5_processGrades.php';
+    const gradingUrl = hostname + localRoot + 'cal/apps/aud/scanpost/5_processGrades.php';
 
     //Integrate relevant metadata
     let dataBlock = {
@@ -704,7 +703,7 @@ async function sendAccessibilityConcernsToCTXAx(ampReportData) {
 
     //had to use this approach since this is not a module
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-    const ctxIntakeUrl = hostname+ localRoot + 'cal/apps/aud/scanpost/3_postScanResults.php';
+    const ctxIntakeUrl = hostname + localRoot + 'cal/apps/aud/scanpost/3_postScanResults.php';
 
     //Integrate relevant metadata
     let initialDataBlock = {
@@ -806,7 +805,7 @@ function getFullDateAndTime(timestamp = new Date(), forceTwoDigits = true, getSt
  */
 async function createScanReport() {
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-    const targetPg = hostname+ localRoot + 'cal/apps/aud/scanpost/emailScanReport.php';
+    const targetPg = hostname + localRoot + 'cal/apps/aud/scanpost/emailScanReport.php';
 
     await fetch(targetPg, {
         method: 'GET',
