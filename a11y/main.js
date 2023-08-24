@@ -12,7 +12,7 @@ const chrome = require('selenium-webdriver/chrome');
 let service = new chrome.ServiceBuilder()
     .enableVerboseLogging()
     .build();
-
+    
 // configure browser options ...
 let options = new chrome.Options();
 options.excludeSwitches(['enable-logging']); //prevents CLI msg clutter
@@ -76,7 +76,7 @@ else throw new Error("the environment variable is not defined.");
 */
 let localRoot = '/CTX_A11Y_Dash_Working/';
 
-if (environment === 'local') localRoot = '/CTX_A11Y_Dash_Working/'
+if (environment === 'local') localRoot = '/CTX_A11Y_Dash_Working/CTX_A11Y_Dash_Working/'
 else if (environment === 'development') localRoot = ""
 else if (environment === 'production') localRoot = "";
 
@@ -346,11 +346,7 @@ function quitDriver() {
 
 async function runPostProcessing() {
     
-    //DEBUG - commeting out processing of issues so we can do it step by step
-    //await processStoredIssues().then(gradeNewIssues, processingError);
-
-    //Glenn - 8/21 - this is already commented out.
-    // await finalWrapup();
+    await processStoredIssues().then(gradeNewIssues, processingError);
 }
 
 function processingError(error) {
@@ -432,8 +428,6 @@ async function getUrlsToScan() {
 
     let status;
     let urlsRetrieved;
-    // DEBUG
-    // let issuesToScan = [868, 880];
 
     await fetch(urlListLoc)
         .then((response) => {
@@ -811,6 +805,6 @@ async function createScanReport() {
         method: 'GET',
     })
         .catch((err) => {
-            console.error("exportScanReportToPDF: error:", err);
+            console.error("createScanReport: error:", err);
         });
 };
