@@ -74,11 +74,8 @@ else throw new Error("the environment variable is not defined.");
 /*
 * Generate local root value to manage connection
 */
-let localRoot = '/CTX_A11Y_Dash_Working/';
-
-if (environment === 'local') localRoot = '/CTX_A11Y_Dash_Working/CTX_A11Y_Dash_Working/'
-else if (environment === 'development') localRoot = ""
-else if (environment === 'production') localRoot = "";
+let localRoot = "";
+if (environment === 'local') localRoot = '/CTX_A11Y_Dash_Working/';
 
 /*
 * STEP 1 - Get Urls
@@ -88,13 +85,9 @@ else if (environment === 'production') localRoot = "";
 */
 
 try {
-
     getUrls_start();
-
 } catch (error) {
-
     console.log("An error occurred: ", error);
-
 }
 
 async function getUrls_start() {
@@ -374,48 +367,6 @@ async function finalWrapup() {
  * Supporting Methods
  * ==========================================================
  */
-
-
-/**
- * Post scan results to the CTX database.
- */
-async function buildfinalScanReport(scanid = ctxScanApp.scanId) {
-
-    const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-    const targetPg = hostname + localRoot + 'cal/apps/aud/scanpost/6_buildFinalScanReport.php';
-
-    let scanLogMsg = {
-        "scanid": scanid,
-        "timestamp": ctxScanApp.scanTimestamp
-    }
-
-    let status;
-
-    await fetch(targetPg, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(scanLogMsg)
-    })
-        .then((response) => {
-            status = response.status;
-            return response.json();
-        })
-        .then((jsonResponse) => {
-            //console.log( "postScanRecord(): status: ", status);
-            //console.log( "postScanRecord(): jsonResponse: ", jsonResponse );
-
-            if ('new_scan_id' in jsonResponse) {
-                ctxScanApp.scanId = jsonResponse.new_scan_id[0];
-            }
-        })
-        .catch((err) => {
-            // handle error
-            console.error("buildfinalScanReport(): Error:", err);
-        });
-
-};
 
 /**
  * Retrieves URLs to scan from the ad__crossint_1 table
