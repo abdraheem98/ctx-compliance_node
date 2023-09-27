@@ -4,6 +4,51 @@
     * <span style="color:red;">Exception</span>: if there are common objects/elements for both teams, they will not be separated in the teams' folders. They should be declared as global components in order to be utilized by <span style="color:dodgerblue;">a11y</span> and <span style="color:dodgerblue;">adtech</span> concurrently. Example of a global component: <span style="color:green;">package.json</span> or <span style="color:green;">yml files</span>.
 * NodeJS application will be deployed in this current repository, i.e. [CTX_Compliance_Node](https://dev.azure.com/ACC-Azure-06/27111-ADEPTweb/\_git/CTX_Compliance_Node). Before pushing the local changes into the remote repository, the backend code must be separated in <span style="color:dodgerblue;">a11y</span> or <span style="color:dodgerblue;">adtech</span> branch. Once the local <span style="color:dodgerblue;">a11y</span> or <span style="color:dodgerblue;">adtech</span> branch is pushed into the remote repository, then it should be reviewed before it gets merged into the <span style="color:green;">development</span> branch,  <span style="color:red;">but not into the production branch</span><span style="color:red;"></span>. In order to deploy code into the production branch, obviously a QA Tester will be responsible to test out the code changes from the development branch firstly. If the QA Tester approves them, then the development branch can be merged into production.
 
+# <span style="color:darkorange;">How to build the docker image locally</span>
+1. Start the docker engine 
+2. Navigate to the root directory of the project.
+3. Create a docker image by running this command:
+  ```bash
+  docker build -t imageName .
+  ```
+4. In order to run a container, it needs the IMAGE ID it generated. You can retrieve it by running this command:
+  ```bash
+  docker images
+  ```
+5. With the IMAGE ID, it can run the container. In local environments, the most used port number is 80:80. .
+  ```bash
+  docker run -d -p 80:80 ImageID
+  ```
+
+6. To see if the container is running:
+  ```bash
+  docker ps
+  ```
+7. To stop a container that is running:
+  ```bash
+  docker stop ImageID
+  ```
+
+8. To restart the container
+  ```bash
+  docker start ImageID
+  ```
+
+9. To remove the container
+  ```bash
+  docker rm ContainerName
+  ```
+
+10. To remove the image
+  ```bash
+  docker rmi ImageID
+  ```
+
+11. If it's needed to execute commands within a running container:
+  ```bash
+  docker exec -it ImageID /bin/sh
+  ```
+
 # <span style="color:darkorange;">**Deployment Process Overview of the**</span><span style="color:darkorange;"> </span><span style="color:darkorange;"> [NodeJS](https://dev.azure.com/ACC-Azure-06/27111-ADEPTweb/\_git/CTX_Compliance_Node) </span><span style="color:darkorange;">**app**</span>
 
 * <span style="color:darkorange;"></span><span style="color:green;">Development Branch</span>: This branch is used for ongoing development and testing of new features and bug fixes. When code changes are committed and pushed to this branch, it triggers the development pipeline.
