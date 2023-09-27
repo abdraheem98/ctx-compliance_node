@@ -13,15 +13,9 @@ RUN npm config set cafile ${CERT_FILE_PATH}
 RUN npm config set proxy ${http_proxy}
 RUN npm config set https-proxy ${https_proxy}
 
-# Check
-RUN npm config get proxy
-RUN npm config get https-proxy
-RUN npm config get registry
-
 # Install NPM globally
 RUN npm install -g npm@10.1.0 && \
     npm install --global pm2
-
 
 # Create app directory
 WORKDIR /usr/src/app
@@ -35,4 +29,6 @@ COPY package*.json ./
 
 RUN npm install
 
-EXPOSE 3000
+EXPOSE 8080
+
+CMD [ "node", "server.js" ]

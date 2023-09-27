@@ -15,9 +15,9 @@
   ```bash
   docker images
   ```
-5. With the IMAGE ID, it can run the container. In local environments, the most used port number is 80:80. .
+5. With the IMAGE ID, it can run the container. In local environments, the most used port number is 8080:8080. .
   ```bash
-  docker run -d -p 80:80 ImageID
+  docker run -d -p 8080:8080 ImageID
   ```
 
 6. To see if the container is running:
