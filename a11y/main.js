@@ -66,7 +66,7 @@ environment = process.env.NODE_ENV
 * Generate the hostname based off the env
 */
 
-if (environment === 'local') hostname = "http://localhost:80/"
+if (environment === 'local') hostname = "http://localhost:8100/"
 else if (environment === 'development') hostname = "https://sp-compliance.dev.att.com/"
 else if (environment === 'production') hostname = "https://sp-compliance.web.att.com/"
 else throw new Error("the environment variable is not defined.");
@@ -75,7 +75,7 @@ else throw new Error("the environment variable is not defined.");
 * Generate local root value to manage connection
 */
 let localRoot = "";
-if (environment === 'local') localRoot = '/CTX_A11Y_Dash_Working/';
+// if (environment === 'local') localRoot = '/CTX_A11Y_Dash_Working/';
 
 /*
 * STEP 1 - Get Urls

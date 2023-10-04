@@ -15,7 +15,8 @@ RUN npm config set https-proxy ${https_proxy}
 
 # Install NPM globally
 RUN npm install -g npm@10.1.0 && \
-    npm install --global pm2
+    npm install --global pm2 && \
+    npm install -g jsdoc
 
 # Create app directory
 WORKDIR /usr/src/app
@@ -28,6 +29,7 @@ COPY . .
 COPY package*.json ./
 
 RUN npm install
+RUN jsdoc -c jsdocConf.json
 
 EXPOSE 8080
 
