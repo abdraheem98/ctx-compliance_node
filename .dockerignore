@@ -1,4 +1,5 @@
 node_modules
+jsDoc
 **/.idea/
 **/.env
 npm-debug.log

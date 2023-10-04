@@ -3,6 +3,7 @@
 	"name": "access-continuum-cucumber-selenium-chrome",
 	"version": "5.0.1",
 	"description": "Cucumberjs / Selenium / Chrome + ACCESS Engine",
+	"main": "server.js",
 	"scripts": {
 		"test": "./node_modules/.bin/cucumber-js --require features/steps/"
 	},
@@ -16,6 +17,7 @@
 	},
 	"dependencies": {
 		"express": "^4.18.2",
+		"jsdoc": "^4.0.2",
 		"node-fetch": "^3.3.1",
 		"q": "1.5.1"
 	}

@@ -21,6 +21,13 @@ if (maintenanceMode==='true'){
     });
 } else throw new Error("the MAINTENANCE_MODE_NODEAPP env variable is not defined.");
 
+/**
+ * ADD a route for the JS Documentation and load all its resources
+ */
+app.get('/jsDoc', (req, res) => {
+    app.use(express.static(__dirname + '/jsDoc/'));
+    res.sendFile(__dirname + "/jsDoc/index.html");
+});
 
 app.listen(PORT, HOST, () => {
     console.log(`Running on http://${HOST}:${PORT}`);
