@@ -32,3 +32,5 @@ RUN npm install
 RUN jsdoc -c jsdocConf.json
 
 EXPOSE 8080
+
+CMD [ "node", "server.js" ]
