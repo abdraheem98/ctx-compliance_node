@@ -14,7 +14,7 @@ RUN npm config set proxy ${http_proxy}
 RUN npm config set https-proxy ${https_proxy}
 
 # Install NPM globally
-RUN npm install -g npm@10.1.0 && \
+RUN npm i -g npm@10.1.0 && \
     npm install --global pm2 && \
     npm install -g jsdoc
 
@@ -30,6 +30,10 @@ COPY package*.json ./
 
 RUN npm install
 RUN jsdoc -c jsdocConf.json
+
+RUN chown -R root /usr/src/app/node_modules
+
+USER root
 
 EXPOSE 8080
 
