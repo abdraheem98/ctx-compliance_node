@@ -66,15 +66,15 @@ environment = process.env.NODE_ENV
 * Generate the hostname based off the env
 */
 
-if (environment === 'local') hostname = "http://localhost:8100/"
-else if (environment === 'development') hostname = "https://sp-compliance.dev.att.com/"
-else if (environment === 'production') hostname = "https://sp-compliance.web.att.com/"
+if (environment === 'local') hostname = "http://localhost:80/"
+else if (environment === 'development') hostname = "https://adeptweb-westus2-dev-azapp-01/"
+else if (environment === 'production') hostname = "https://adeptweb-westus2-prod-azapp-01/"
 else throw new Error("the environment variable is not defined.");
 
 /*
 * Generate local root value to manage connection
 */
-let localRoot = "";
+let localRoot = "api/a11y/";
 // if (environment === 'local') localRoot = '/CTX_A11Y_Dash_Working/';
 
 /*
