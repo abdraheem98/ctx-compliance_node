@@ -1,7 +1,7 @@
 FROM node:18-alpine
 LABEL authors="cp7592"
 
-# Certicate
+# Certificate
 ENV CERT_HOME=/usr/local/share/ca-certificates
 ENV CERT_FILE_PATH=${CERT_HOME}/gitandatt.crt
 RUN mkdir -p ${CERT_HOME}
