@@ -10,7 +10,7 @@
 	"devDependencies": {
 		"@continuum/continuum-javascript-professional": "file:./lib/continuum-continuum-javascript-professional-5.1.0.tgz",
 		"chai": "4.2.0",
-		"chromedriver": "^114.0",
+		"chromedriver": "^119.0",
 		"cucumber": "6.0.5",
 		"global-agent": "2.1.8",
 		"selenium-webdriver": "^4.9.2"
