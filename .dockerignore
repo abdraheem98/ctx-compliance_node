@@ -3,3 +3,4 @@ jsDoc
 **/.idea/
 **/.env
 npm-debug.log
+package-lock.json
