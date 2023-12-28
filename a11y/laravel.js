@@ -5,16 +5,20 @@
 //Load primary resources
 //const seleniumWebdriver = require('selenium-webdriver');
 const chrome = require('selenium-webdriver/chrome');
-//const path = require('chromedriver').path;
+const path = require('chromedriver').path;
 
 //Revised chrome selenium service code 4/14/23 - works with Chrome Driver version 112
 //See code at https://github.com/SeleniumHQ/selenium/blob/6222bb2a1fc6d88ae5ff11c8ab7af06ef875d0b9/javascript/node/selenium-webdriver/chrome.js#L62
-let service = new chrome.ServiceBuilder()
+let service = new chrome.ServiceBuilder(path)
     .enableVerboseLogging()
     .build();
 
 // configure browser options ...
 let options = new chrome.Options();
+options.addArguments('headless');
+options.addArguments('no-sandbox');
+options.addArguments('disable-dev-shm-usage');
+options.addArguments(["--window-size=1600,1200"]);
 options.excludeSwitches(['enable-logging']); //prevents CLI msg clutter
 
 let driver = chrome.Driver.createSession(options, service);
@@ -25,6 +29,7 @@ const {
     ReportManagementStrategy,
     ModuleManagementStrategy
 } = require('@continuum/continuum-javascript-professional');
+const {until} = require("selenium-webdriver");
 
 //Should contain all data for the active scan in progress
 let ctxScanApp = {};
@@ -174,7 +179,6 @@ async function runScan_start_failed(error) {
 
 async function runScan_postInitialize() {
 
-    //await setContinuum();
     await Continuum.setUp(driver, require('path').resolve(__dirname, "./continuum.conf.js"), null).then(runScan_getResults, runScan_postInit_failed);
 
 }
@@ -221,14 +225,14 @@ async function runScan_getResults() {
 }
 
 async function getFullPageScanResults() {
-
+    await driver.manage().setTimeouts({implicit: 500})
     await Continuum.runAllTests();
 
 }
 
 
 async function getNodeScanResults() {
-
+    await driver.manage().setTimeouts({implicit: 500})
     await Continuum.runAllTestsOnNode(ctxScanApp.currentScanSrc.node_path);
 
 }
