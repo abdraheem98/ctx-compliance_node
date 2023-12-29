@@ -91,9 +91,20 @@ RUN npm install
 RUN jsdoc -c jsdocConf.json
 
 RUN chown -R root /usr/src/app/node_modules
-
 USER root
 
-EXPOSE 8080
+# Add a cron job to run accessibility scan in the cron directory & give execution rights on the cron job & a11y/laravel.js
+ENV CRONTAB_PATH=/etc/cron.d/a11y_crontab
+ARG NODE_ENV
+ENV NOVE_ENV ${NODE_ENV}
+RUN echo "0 0 * * * /usr/local/bin/node /usr/src/app/a11y/laravel.js >> /var/log/cron.log 2>&1" >> ${CRONTAB_PATH}
+RUN chmod 0644 ${CRONTAB_PATH}
+RUN chmod +x /usr/src/app/a11y/laravel.js
+RUN printenv | grep -v "no_proxy" >> /etc/environment
+RUN crontab ${CRONTAB_PATH}
+RUN touch /var/log/cron.log
 
-CMD [ "node", "server.js" ]
+EXPOSE 8080
+CMD service cron start
+CMD ["node", "server.js"]
+CMD ["cron", "-f"]
