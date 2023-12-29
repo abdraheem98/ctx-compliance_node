@@ -29,7 +29,6 @@ const {
     ReportManagementStrategy,
     ModuleManagementStrategy
 } = require('@continuum/continuum-javascript-professional');
-const {until} = require("selenium-webdriver");
 
 //Should contain all data for the active scan in progress
 let ctxScanApp = {};
