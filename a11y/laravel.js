@@ -5,16 +5,20 @@
 //Load primary resources
 //const seleniumWebdriver = require('selenium-webdriver');
 const chrome = require('selenium-webdriver/chrome');
-//const path = require('chromedriver').path;
+const path = require('chromedriver').path;
 
 //Revised chrome selenium service code 4/14/23 - works with Chrome Driver version 112
 //See code at https://github.com/SeleniumHQ/selenium/blob/6222bb2a1fc6d88ae5ff11c8ab7af06ef875d0b9/javascript/node/selenium-webdriver/chrome.js#L62
-let service = new chrome.ServiceBuilder()
+let service = new chrome.ServiceBuilder(path)
     .enableVerboseLogging()
     .build();
 
 // configure browser options ...
 let options = new chrome.Options();
+options.addArguments('headless');
+options.addArguments('no-sandbox');
+options.addArguments('disable-dev-shm-usage');
+options.addArguments(["--window-size=1600,1200"]);
 options.excludeSwitches(['enable-logging']); //prevents CLI msg clutter
 
 let driver = chrome.Driver.createSession(options, service);
@@ -29,7 +33,7 @@ const {
 //Should contain all data for the active scan in progress
 let ctxScanApp = {};
 
-//Contains the source data objects used for completing scans. This is the entire list of 
+//Contains the source data objects used for completing scans. This is the entire list of
 //objects to scan.
 ctxScanApp.urlsToScan = [];
 
@@ -56,6 +60,16 @@ const MSG_TYPE_FINISH = "msg_type_finish";
 const MSG_TYPE_START = "msg_type_start";
 const MSG_TYPE_UPDATE = "msg_type_update";
 
+// Session Code - Unique Identifier per scan
+// Set the Scan Source as LaravelJs (container)
+function generateUniqueIdentifierPerScan() {
+    const randomPart = Math.floor(Math.random() * 100000000)
+    return `LaravelJS-${randomPart}`;
+}
+
+ctxScanApp.sessionCode = generateUniqueIdentifierPerScan();
+ctxScanApp.scanSource = "NodeJS Container - laravel";
+
 /*
 * Declare the environment variables
 * */
@@ -66,7 +80,7 @@ environment = process.env.NODE_ENV
 * Generate the hostname based off the env
 */
 
-if (environment === 'local') hostname = "http://localhost:80/"
+if (environment === 'local') hostname = "http://172.17.0.2/"
 else if (environment === 'development') hostname = "https://adeptweb-westus2-dev-azapp-01/"
 else if (environment === 'production') hostname = "https://adeptweb-westus2-prod-azapp-01/"
 else throw new Error("the environment variable is not defined.");
@@ -74,7 +88,7 @@ else throw new Error("the environment variable is not defined.");
 /*
 * Generate local root value to manage connection
 */
-let localRoot = "api/a11y/";
+let localRoot = "CTX_A11Y_Dash_Deploy/";
 // if (environment === 'local') localRoot = '/CTX_A11Y_Dash_Working/';
 
 /*
@@ -164,7 +178,6 @@ async function runScan_start_failed(error) {
 
 async function runScan_postInitialize() {
 
-    //await setContinuum();
     await Continuum.setUp(driver, require('path').resolve(__dirname, "./continuum.conf.js"), null).then(runScan_getResults, runScan_postInit_failed);
 
 }
@@ -211,14 +224,14 @@ async function runScan_getResults() {
 }
 
 async function getFullPageScanResults() {
-
+    await driver.manage().setTimeouts({implicit: 500})
     await Continuum.runAllTests();
 
 }
 
 
 async function getNodeScanResults() {
-
+    await driver.manage().setTimeouts({implicit: 500})
     await Continuum.runAllTestsOnNode(ctxScanApp.currentScanSrc.node_path);
 
 }
@@ -248,7 +261,6 @@ async function scanResultsFound() {
 
     let accessibilityConcerns = await Continuum.getAccessibilityConcerns();
     let issLen = accessibilityConcerns.length;
-
     if (issLen > 0) {
 
         //move the fingerprint object into the main object so it can be converted to JSON
@@ -259,7 +271,7 @@ async function scanResultsFound() {
     }
 
     //console.log("scanResultsFound(): Scan results: ", accessibilityConcerns);
-    //console.log("scanResultsFound(): Scan results: ", accessibilityConcerns[0]);
+    // console.log("scanResultsFound(): Scan results: ", accessibilityConcerns[0]);
     console.log("scanResultsFound(): Scan results length: ", accessibilityConcerns.length);
 
     //Post issues found (or zero issues) - send regardless of issue count
@@ -306,7 +318,7 @@ async function postScanCleanup(force_close = false) {
     if (!force_close) {
 
         postScanRecord(`Full scan completed.`, MSG_TYPE_FINISH, ctxScanApp.scanId);
-        //console.log("postScanCleanup(): Full scan completed."); 
+        //console.log("postScanCleanup(): Full scan completed.");
         quitDriver();
 
     } else {
@@ -338,7 +350,6 @@ function quitDriver() {
 //=======================================
 
 async function runPostProcessing() {
-
     await processStoredIssues().then(gradeNewIssues, processingError);
 }
 
@@ -358,7 +369,7 @@ async function finalWrapup() {
     console.log("--------------------------------------------");
     console.log("finalWrapup(): post-processing complete. Stopping.");
     console.log("createScanReport(): Emailing the Scan Report");
-    await createScanReport();
+    // await createScanReport();
 
 }
 
@@ -373,58 +384,20 @@ async function finalWrapup() {
  * @returns String JSON list
  */
 async function getUrlsToScan() {
-
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
     const urlListLoc = hostname + localRoot + 'cal/apps/aud/scanpost/1_getUrlToScan.php';
-
     let status;
-    let urlsRetrieved;
-
     await fetch(urlListLoc)
         .then((response) => {
             status = response.status;
             return response.json();
         })
         .then((jsonResponse) => {
-
-            let scanCountLimiter = 1;
-            let currentScanIndex = 0;
             for (let y = 0; y < jsonResponse.length; y++) {
-
-                //DEBUG - skip if global
-                //if (jsonResponse[y].scan_scope == "node") continue;
-
-                //DEBUG - skip if not global
-                //if (jsonResponse[y].scan_scope !== "node") continue;
-
-                //DEBUG - specific scan list
-                //let targetId = 850;
-                //let targetId = 868; //Global nav header
-                //let targetId = 860; //small business 
-                //let targetId = 742; //Global nav headband
-
-                // let targetId = 793; //Legal terms - consumer service agreement
-                // if ( jsonResponse[y]['scan_list_id'] == targetId ) {
-                //     console.log( "getUrlsToScan(): Excluding all urls except scan list id targetId", targetId );
-                // } else {
-                //     continue;
-                // }
-
-                // DEGUG
-                // if ( !issuesToScan.includes( parseInt(jsonResponse[y]['scan_list_id'] ))) continue;
-
                 //Complete scan
                 jsonResponse[y].scanAttempted = false;
                 ctxScanApp.urlsToScan.push(jsonResponse[y]);
-
-                //DEBUG - limit # of items scanned
-                // currentScanIndex++;
-                // if ( currentScanIndex > scanCountLimiter ) break;
-
-                //DEBUG - scan only 1 item
-                //break;
             }
-
         })
         .catch((err) => {
             // handle error
@@ -441,12 +414,12 @@ async function getUrlsToScan() {
  * @param {*} scanid The id from the 'jtm_scans' entry, or -1 if it has not yet been established
  * @param {*} scan_list_id The id from the 'jtm_scan-list' table. This is optional since the record might not pertain to a specific jtm-scan-list id element.
  * @param {*} timestamp The timestamp for the record. It is rare to provide anything here - the function will provide the current time down to the seconds.
- *
+ * @param {*} session_code - scan session code
+ * @param {*} scan_source - The trigger of the scan
  */
 
 
 async function postScanRecord(msg, type, scanid = ctxScanApp.scanId, scan_list_id = -1, timestamp = ctxScanApp.scanTimestamp) {
-
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
     const targetPg = hostname + localRoot + 'cal/apps/aud/scanpost/postScanRecord.php';
 
@@ -455,7 +428,9 @@ async function postScanRecord(msg, type, scanid = ctxScanApp.scanId, scan_list_i
         "type": type,
         "scanid": scanid,
         "scanlistid": scan_list_id,
-        "timestamp": timestamp
+        "timestamp": timestamp,
+        "sessioncode": ctxScanApp.sessionCode,
+        "scansource": ctxScanApp.scanSource
     }
     // console.log(JSON.stringify(scanLogMsg))
     let status;
@@ -513,7 +488,8 @@ async function postScanMetadata(scanid = ctxScanApp.scanId, metaDataObj, scanLis
         "docWidth": metaDataObj.docWidth,
         "docTitle": encodeURI(metaDataObj.title),
         "orientation": metaDataObj.orientation,
-        "userAgent": metaDataObj.userAgent
+        "userAgent": metaDataObj.userAgent,
+        "sessionCode": ctxScanApp.sessionCode,
     }
 
     ctxScanApp.currentScanSrc.metadata = metadataToAdd;
@@ -576,8 +552,9 @@ async function processStoredIssues() {
     })
         .then((response) => {
             status = response.status;
+            // console.log(response.json());
+            // return response;
             return response.json();
-            //return response;
         })
         .then((jsonResponse) => {
             if (status !== 200) console.log("processStoredIssues(): Status =", status);
@@ -595,8 +572,7 @@ async function processStoredIssues() {
  * Once all issues have been successfully stored,
  */
 async function gradeNewIssues() {
-
-    //had to use this approach since this is not a module
+    // had to use this approach since this is not a module
     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
     const gradingUrl = hostname + localRoot + 'cal/apps/aud/scanpost/5_processGrades.php';
 
@@ -657,11 +633,12 @@ async function sendAccessibilityConcernsToCTXAx(ampReportData) {
         intendedUrl: ctxScanApp.currentScanSrc.url,
         scan_scope: ctxScanApp.currentScanSrc.scan_scope,
         intendedScanListId: ctxScanApp.currentScanSrc.scan_list_id,
-        scanRecordId: ctxScanApp.scanId
+        scanRecordId: ctxScanApp.scanId,
+        sessionCode: ctxScanApp.sessionCode,
     };
 
     ampReportData.unshift(initialDataBlock);
-
+    // console.log("ampReportData: ", ampReportData);
     //DEBUG
     reportCount++;
     //if (reportCount == 1 ) console.log( "sendAccessibilityConcernsToCTXAx(): ampReportData = ", ampReportData[1] );
