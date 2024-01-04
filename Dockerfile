@@ -4,6 +4,9 @@ LABEL authors="cp7592"
 # Certificate
 ENV CERT_HOME=/usr/local/share/ca-certificates
 ENV CERT_FILE_PATH=${CERT_HOME}/gitandatt.crt
+ENV MAINTENANCE_MODE_NODEAPP ${MAINTENANCE_MODE_NODEAPP}
+ENV NO_PROXY ${NO_PROXY}
+ENV NODE_EXTRA_CA_CERTS ${NODE_EXTRA_CA_CERTS}
 RUN mkdir -p ${CERT_HOME}
 COPY gitandatt.crt ${CERT_FILE_PATH}
 #RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
@@ -105,6 +108,4 @@ RUN crontab ${CRONTAB_PATH}
 RUN touch /var/log/cron.log
 
 EXPOSE 8080
-CMD service cron start
-CMD ["node", "server.js"]
-CMD ["cron", "-f"]
+CMD ["/bin/sh", "start.sh"]
