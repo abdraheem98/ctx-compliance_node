@@ -76,7 +76,7 @@ RUN npm config set https-proxy ${https_proxy}
 
 # Install NPM globally
 RUN npm i -g npm@10.1.0 && \
-    npm install --global pm2 && \
+    npm install -g pm2 && \
     npm install -g jsdoc && \
     npm install -g chromedriver
 
@@ -89,16 +89,13 @@ COPY . .
 # A wildcard is used to ensure both package.json AND package-lock.json are copied
 # where available (npm@5+)
 COPY package*.json ./
-
 RUN npm install
 RUN jsdoc -c jsdocConf.json
-
 RUN chown -R root /usr/src/app/node_modules
 USER root
 
 # Add a cron job to run accessibility scan in the cron directory & give execution rights on the cron job & a11y/laravel.js
 ENV CRONTAB_PATH=/etc/cron.d/a11y_crontab
-ARG NODE_ENV
 ENV NOVE_ENV ${NODE_ENV}
 RUN echo "0 0 * * * /usr/local/bin/node /usr/src/app/a11y/laravel.js >> /var/log/cron.log 2>&1" >> ${CRONTAB_PATH}
 RUN chmod 0644 ${CRONTAB_PATH}
@@ -107,5 +104,14 @@ RUN printenv | grep -v "no_proxy" >> /etc/environment
 RUN crontab ${CRONTAB_PATH}
 RUN touch /var/log/cron.log
 
-EXPOSE 8080
+# SSH Server: Install, enable & start SSH
+# More info: https://learn.microsoft.com/en-us/azure/app-service/configure-custom-container?pivots=container-linux&tabs=debian#enable-ssh
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends dialog \
+    && apt-get install -y --no-install-recommends openssh-server \
+    && echo "root:Docker!" | chpasswd \
+    && chmod u+x ./start.sh
+COPY sshd_config /etc/ssh/
+
+EXPOSE 8080 2222
 CMD ["/bin/sh", "start.sh"]
